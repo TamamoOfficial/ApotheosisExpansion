@@ -18,8 +18,19 @@ java {
 
 repositories {
     mavenCentral()
-    // Local flat repo holding the Apotheosis-family jars we depend on.
-    flatDir { dirs "${rootDir}/libs" }
+
+    // Shadow's Maven hosts the whole Apotheosis family and is the canonical source:
+    // https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/<Artifact>/<mc>-<version>/
+    //
+    // Resolving from here (rather than a local flatDir) is what makes a fresh clone buildable
+    // without any manually supplied jars.
+    maven {
+        name = 'shadowsoffire'
+        url = 'https://maven.shadowsoffire.dev/releases'
+        content {
+            includeGroup 'dev.shadowsoffire'
+        }
+    }
 }
 
 neoForge {
@@ -43,10 +54,11 @@ neoForge {
 }
 
 dependencies {
-    // Compile-only against the Apotheosis stack: they are provided at runtime by the real mods.
-    compileOnly "apotheosis:Apotheosis-1.21.1-${apotheosisVersion}"
-    compileOnly "placebo:Placebo-1.21.1-${placeboVersion}"
-    compileOnly "apothicattributes:ApothicAttributes-1.21.1-${apothicAttributesVersion}"
+    // Compile-only against the Apotheosis stack: the real mods provide these at runtime, and
+    // bundling them would be wrong (they are separate distributions).
+    compileOnly "dev.shadowsoffire:Apotheosis:${mcVersion}-${apotheosisVersion}"
+    compileOnly "dev.shadowsoffire:Placebo:${mcVersion}-${placeboVersion}"
+    compileOnly "dev.shadowsoffire:ApothicAttributes:${mcVersion}-${apothicAttributesVersion}"
 }
 
 jar {

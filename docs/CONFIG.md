@@ -113,8 +113,16 @@
 
 产物在 `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.0.0.jar`。
 
-**依赖说明**：Apotheosis / Placebo / Apothic Attributes 通过本地 `libs/` 目录的 flatDir 仓库引用
-（这些 jar 在公共 Maven 上不稳定可得）。若改用公共仓库，请相应修改 `build.gradle` 的 `repositories`。
+**依赖说明**：Apotheosis / Placebo / Apothic Attributes 从
+[Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/) 解析：
+
+```gradle
+compileOnly "dev.shadowsoffire:Apotheosis:${mcVersion}-${apotheosisVersion}"
+compileOnly "dev.shadowsoffire:Placebo:${mcVersion}-${placeboVersion}"
+compileOnly "dev.shadowsoffire:ApothicAttributes:${mcVersion}-${apothicAttributesVersion}"
+```
+
+**克隆后无需手动准备任何 jar。** 若该仓库不可达，可自行下载放进 `libs/` 并临时改回 flatDir。
 
 ### 本机 Gradle 无法启动
 

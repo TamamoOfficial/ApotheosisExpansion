@@ -91,8 +91,9 @@ data reload** (`F3+T` or rejoin the world).
 
 Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.0.0.jar`
 
-Apotheosis / Placebo / Apothic Attributes are referenced from a local `libs/` folder (those jars are
-not reliably available on public Maven). Gradle does not start on the development machine
+Dependencies are downloaded by Gradle from
+[Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/), so **a fresh clone
+needs no manually supplied jars**. Gradle does not start on the development machine
 (`native-platform.dll`), so `javac` is used directly — details in
 [Feature Details · Config](docs/CONFIG_en.md).
 

@@ -36,28 +36,76 @@ function optionalEnv(name) {
   return v && v.trim() ? v.trim() : null;
 }
 
-/** Resolves the Apotheosis jar from APOTH_JAR, falling back to the libs/ folder. */
+/**
+ * Finds a jar inside the Gradle dependency cache.
+ *
+ * A fresh clone has no libs/ folder: build.gradle resolves the Apotheosis family from Shadow's
+ * Maven, and Gradle stores what it downloads here. Searching the cache means the validators work
+ * right after the first `gradlew build` with no extra setup.
+ *
+ * @param {string} prefix artifact name prefix, e.g. "Apotheosis-1.21.1"
+ * @returns {string|null} the jar path, or null when nothing matches
+ */
+function gradleCacheJar(prefix) {
+  const roots = [
+    path.join(require('os').homedir(), '.gradle', 'caches', 'modules-2', 'files-2.1'),
+    rel('.gradle', 'caches', 'modules-2', 'files-2.1'),
+  ];
+  for (const root of roots) {
+    if (!fs.existsSync(root)) continue;
+    const hits = [];
+    const walk = (dir, depth) => {
+      if (depth > 6 || hits.length > 4) return;
+      let entries;
+      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+      for (const e of entries) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) walk(full, depth + 1);
+        else if (e.name.startsWith(prefix) && e.name.endsWith('.jar')) hits.push(full);
+      }
+    };
+    walk(root, 0);
+    if (hits.length) return hits[0];
+  }
+  return null;
+}
+
+/** Resolves the Apotheosis jar: env var, then libs/, then the Gradle cache. */
 function apothJar() {
   const fromEnv = optionalEnv('APOTH_JAR');
   if (fromEnv) return fromEnv;
+
   const libs = rel('libs');
   if (fs.existsSync(libs)) {
     const hit = fs.readdirSync(libs).find(f => /^Apotheosis-.*\.jar$/i.test(f));
     if (hit) return path.join(libs, hit);
   }
-  return requireEnv('APOTH_JAR', 'Path to the Apotheosis jar, e.g. libs/Apotheosis-1.21.1-8.9.0.jar');
+
+  const cached = gradleCacheJar('Apotheosis-');
+  if (cached) return cached;
+
+  return requireEnv('APOTH_JAR',
+    'Run "gradlew build" once so Gradle downloads it, or set APOTH_JAR to the Apotheosis jar. '
+    + 'Manual download: https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/Apotheosis/');
 }
 
 /** Resolves the Placebo jar the same way. */
 function placeboJar() {
   const fromEnv = optionalEnv('PLACEBO_JAR');
   if (fromEnv) return fromEnv;
+
   const libs = rel('libs');
   if (fs.existsSync(libs)) {
     const hit = fs.readdirSync(libs).find(f => /^Placebo-.*\.jar$/i.test(f));
     if (hit) return path.join(libs, hit);
   }
-  return requireEnv('PLACEBO_JAR', 'Path to the Placebo jar, e.g. libs/Placebo-1.21.1-9.9.4.jar');
+
+  const cached = gradleCacheJar('Placebo-');
+  if (cached) return cached;
+
+  return requireEnv('PLACEBO_JAR',
+    'Run "gradlew build" once so Gradle downloads it, or set PLACEBO_JAR to the Placebo jar. '
+    + 'Manual download: https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/Placebo/');
 }
 
 /** javap: from JAVAP, else the one on PATH, else derived from JAVA_HOME. */

@@ -46,25 +46,31 @@ node build/verify_readme.js
 | `MC_SOURCES_JAR` | NeoForge 的 `neoforge-*-sources.jar` | 少数检查原版行为的脚本 |
 | `JAVAP` | `javap` 可执行文件路径 | 依赖字节码的脚本 |
 
-**依赖 jar 从哪里来**：`libs/` 目录（见 `build.gradle` 的 flatDir 仓库）。
+**依赖 jar 从哪里来**：脚本按以下顺序查找，通常不需要设置任何变量：
+
+1. `APOTH_JAR` / `PLACEBO_JAR` 环境变量
+2. 仓库根的 `libs/` 目录（离线工作时可手动放置）
+3. **Gradle 依赖缓存** —— 跑过一次 `gradlew build` 就自动有了
+
 `MC_SOURCES_JAR` 来自 NeoForge 的 moddev 产物，通常位于
 `~/.gradle/caches/` 或项目的 `build/moddev/artifacts/`。
 
 示例（PowerShell）：
 
 ```powershell
-$env:APOTH_JAR   = "libs/Apotheosis-1.21.1-8.9.0.jar"
-$env:PLACEBO_JAR = "libs/Placebo-1.21.1-9.9.4.jar"
-$env:JAVAP       = "javap"          # 若 JDK 在 PATH 上
+# 通常只需这一行：jar 会从 Gradle 缓存自动找到
+$env:JAVAP = "javap"                # 若 JDK 在 PATH 上
 node build/verify_mixin.js
+
+# 没有跑过 gradlew build、也没有 libs/ 时，手动指定：
+$env:APOTH_JAR   = "C:/path/to/Apotheosis-1.21.1-8.9.0.jar"
 ```
 
 示例（bash）：
 
 ```bash
-export APOTH_JAR=libs/Apotheosis-1.21.1-8.9.0.jar
 export JAVAP=javap
-node build/verify_mixin.js
+node build/verify_mixin.js          # jar 从 Gradle 缓存自动找到
 ```
 
 ---

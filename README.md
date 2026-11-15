@@ -88,9 +88,9 @@
 
 产物：`build/libs/ApotheosisExpansion-1.21.1-neoforge-1.0.0.jar`
 
-Apotheosis / Placebo / Apothic Attributes 通过本地 `libs/` 目录引用（这些 jar 在公共 Maven 上不稳定）。
-开发机的 Gradle 因 `native-platform.dll` 无法启动，实际用 `javac` 直接编译，细节见
-[配置与构建](docs/CONFIG.md#本机-gradle-无法启动)。
+依赖由 Gradle 自动从 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/) 下载，
+**克隆后无需手动准备任何 jar**。开发机的 Gradle 因 `native-platform.dll` 无法启动，实际用 `javac` 直接编译，
+细节见 [配置与构建](docs/CONFIG.md#本机-gradle-无法启动)。
 
 ---
 

@@ -115,9 +115,17 @@ reload is not enough.
 
 Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.0.0.jar`
 
-**Dependencies**: Apotheosis / Placebo / Apothic Attributes are resolved from a local `libs/` flatDir
-repository (those jars are not reliably available on public Maven). If you prefer public repositories,
-adjust `repositories` in `build.gradle`.
+**Dependencies**: Apotheosis / Placebo / Apothic Attributes resolve from
+[Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/):
+
+```gradle
+compileOnly "dev.shadowsoffire:Apotheosis:${mcVersion}-${apotheosisVersion}"
+compileOnly "dev.shadowsoffire:Placebo:${mcVersion}-${placeboVersion}"
+compileOnly "dev.shadowsoffire:ApothicAttributes:${mcVersion}-${apothicAttributesVersion}"
+```
+
+**A fresh clone needs no manually supplied jars.** If that repository is unreachable, download the
+jars into `libs/` and temporarily switch the repository back to a flatDir.
 
 ### Gradle does not start on the development machine
 

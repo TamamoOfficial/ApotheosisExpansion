@@ -29,8 +29,9 @@ bin/
 Thumbs.db
 desktop.ini
 
-# Third-party jars: not redistributable from this repository.
-# See build/README.md for how to obtain them.
+# Optional local dependency jars.
+# build.gradle resolves the Apotheosis family from Shadow's Maven, so a fresh clone does not need
+# these; the folder is only used for offline work or when that repository is unreachable.
 libs/*.jar
 
 # Local scratch
