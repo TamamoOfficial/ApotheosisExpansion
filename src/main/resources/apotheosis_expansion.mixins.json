@@ -1,0 +1,15 @@
+{
+    "required": true,
+    "minVersion": "0.8.5",
+    "package": "com.tamamo.apotheosisexpansion.mixin",
+    "compatibilityLevel": "JAVA_21",
+    "mixins": [
+        "AbstractContainerMenuMixin",
+        "BossSpawnerTileMixin",
+        "CreativeTargetFilter$NaturalSpawn",
+        "CreativeTargetFilter$BossSpawner"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}

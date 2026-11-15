@@ -1,0 +1,41 @@
+# Gradle
+.gradle/
+out/
+run/
+
+# Build output
+build/classes/
+build/jarstage/
+build/libs/
+build/probe/
+build/checkclasses/
+build/moddev/
+build/tmp/
+build/resources/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Third-party jars: not redistributable from this repository.
+# See build/README.md for how to obtain them.
+libs/*.jar
+
+# Local scratch
+cp.txt
+logs/
+*.log
+*.bak
+*-before-*

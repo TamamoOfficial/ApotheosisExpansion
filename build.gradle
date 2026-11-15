@@ -1,0 +1,60 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.148'
+}
+
+version = project.properties.modVersion
+group = 'com.tamamo.apotheosisexpansion'
+
+base {
+    archivesName = "ApotheosisExpansion-${mcVersion}-neoforge"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion as int)
+    }
+}
+
+repositories {
+    mavenCentral()
+    // Local flat repo holding the Apotheosis-family jars we depend on.
+    flatDir { dirs "${rootDir}/libs" }
+}
+
+neoForge {
+    version = project.properties.neoforgeVersion
+
+    runs {
+        client {
+            client()
+        }
+        server {
+            server()
+            programArgument '--nogui'
+        }
+    }
+
+    mods {
+        apotheosis_expansion {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+dependencies {
+    // Compile-only against the Apotheosis stack: they are provided at runtime by the real mods.
+    compileOnly "apotheosis:Apotheosis-1.21.1-${apotheosisVersion}"
+    compileOnly "placebo:Placebo-1.21.1-${placeboVersion}"
+    compileOnly "apothicattributes:ApothicAttributes-1.21.1-${apothicAttributesVersion}"
+}
+
+jar {
+    manifest {
+        attributes([
+            'Specification-Title'    : 'apotheosis_expansion',
+            'Implementation-Title'   : project.name,
+            'Implementation-Version' : project.version
+        ])
+    }
+}

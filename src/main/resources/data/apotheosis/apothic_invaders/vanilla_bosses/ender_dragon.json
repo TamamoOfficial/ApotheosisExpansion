@@ -1,0 +1,114 @@
+{
+    "neoforge:conditions": [
+        {
+            "type": "apotheosis_expansion:vanilla_bosses_enabled"
+        },
+        {
+            "type": "apotheosis_expansion:entity_invader_enabled",
+            "entity": "minecraft:ender_dragon"
+        }
+    ],
+    "type": "apotheosis:invader",
+    "basic_data": {
+        "bonus_loot": [
+            "apotheosis:entity/boss_drops",
+            "apotheosis:entity/rare_boss_drops"
+        ],
+        "constraints": {
+            "dimensions": [
+                "minecraft:the_end"
+            ]
+        },
+        "name": "use_name_generation",
+        "valid_gear_sets": {
+            "haven": [
+                "#haven_melee"
+            ],
+            "frontier": [
+                "#frontier_melee"
+            ],
+            "ascent": [
+                "#ascent_melee"
+            ],
+            "summit": [
+                "#summit_melee"
+            ],
+            "pinnacle": [
+                "#pinnacle_melee"
+            ]
+        },
+        "weights": {
+            "quality": 0.1,
+            "weight": 1
+        }
+    },
+    "entity": "minecraft:ender_dragon",
+    "size": {
+        "width": 16,
+        "height": 8
+    },
+    "stats": {
+        "apotheosis:mythic": {
+            "attribute_modifiers": [
+                {
+                    "attribute": "minecraft:generic.max_health",
+                    "operation": "add_value",
+                    "value": {
+                        "min": 660,
+                        "max": 1080
+                    }
+                },
+                {
+                    "attribute": "minecraft:generic.movement_speed",
+                    "operation": "add_multiplied_base",
+                    "value": {
+                        "min": 0.45,
+                        "max": 0.98
+                    }
+                },
+                {
+                    "attribute": "minecraft:generic.attack_damage",
+                    "operation": "add_multiplied_base",
+                    "value": {
+                        "min": 1.05,
+                        "max": 1.58
+                    }
+                },
+                {
+                    "attribute": "minecraft:generic.knockback_resistance",
+                    "operation": "add_value",
+                    "value": 5
+                },
+                {
+                    "attribute": "minecraft:generic.armor",
+                    "operation": "add_value",
+                    "value": 60
+                },
+                {
+                    "attribute": "minecraft:generic.armor_toughness",
+                    "operation": "add_value",
+                    "value": 120
+                },
+                {
+                    "attribute": "minecraft:generic.scale",
+                    "operation": "add_multiplied_total",
+                    "value": {
+                        "min": -0.15,
+                        "max": 0.25
+                    }
+                }
+            ],
+            "effects": [
+                {
+                    "amplifier": 1,
+                    "effect": "minecraft:fire_resistance"
+                }
+            ],
+            "enchant_chance": 0.75,
+            "enchantment_levels": {
+                "primary": 35,
+                "secondary": 25
+            }
+        }
+    }
+}

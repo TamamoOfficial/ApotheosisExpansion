@@ -1,0 +1,136 @@
+{
+    "neoforge:conditions": [
+        {
+            "type": "neoforge:mod_loaded",
+            "modid": "mekanismadditions"
+        },
+        {
+            "type": "apotheosis_expansion:mekanism_invaders_enabled"
+        },
+        {
+            "type": "apotheosis_expansion:entity_invader_enabled",
+            "entity": "mekanismadditions:baby_wither_skeleton"
+        }
+    ],
+    "type": "apotheosis:invader",
+    "basic_data": {
+        "bonus_loot": [
+            "apotheosis:entity/boss_drops",
+            "apotheosis:entity/rare_boss_drops"
+        ],
+        "constraints": {
+            "dimensions": [
+                "minecraft:the_nether"
+            ]
+        },
+        "name": "use_name_generation",
+        "valid_gear_sets": {
+            "haven": [
+                "#haven_ranged"
+            ],
+            "frontier": [
+                "#frontier_ranged"
+            ],
+            "ascent": [
+                "#ascent_ranged"
+            ],
+            "summit": [
+                "#summit_ranged"
+            ],
+            "pinnacle": [
+                "#pinnacle_ranged"
+            ]
+        },
+        "weights": {
+            "ascent": {
+                "quality": 1.5,
+                "weight": 25
+            },
+            "summit": {
+                "quality": 1.5,
+                "weight": 25
+            },
+            "pinnacle": {
+                "quality": 1.5,
+                "weight": 25
+            }
+        }
+    },
+    "entity": "mekanismadditions:baby_wither_skeleton",
+    "size": {
+        "width": 0.75,
+        "height": 2
+    },
+    "stats": {
+        "apotheosis:epic": {
+            "attribute_modifiers": [
+                {
+                    "attribute": "minecraft:generic.max_health",
+                    "operation": "add_value",
+                    "value": {
+                        "min": 60,
+                        "max": 100
+                    }
+                },
+                {
+                    "attribute": "minecraft:generic.movement_speed",
+                    "operation": "add_multiplied_base",
+                    "value": {
+                        "min": 0.3,
+                        "max": 0.5
+                    }
+                },
+                {
+                    "attribute": "apothic_attributes:fire_damage",
+                    "operation": "add_value",
+                    "value": {
+                        "min": 7,
+                        "max": 12
+                    }
+                },
+                {
+                    "attribute": "apothic_attributes:arrow_damage",
+                    "operation": "add_multiplied_base",
+                    "value": {
+                        "min": 0.45,
+                        "max": 0.65
+                    }
+                },
+                {
+                    "attribute": "minecraft:generic.knockback_resistance",
+                    "operation": "add_value",
+                    "value": 0.5
+                },
+                {
+                    "attribute": "minecraft:generic.armor",
+                    "operation": "add_value",
+                    "value": 6
+                },
+                {
+                    "attribute": "minecraft:generic.armor_toughness",
+                    "operation": "add_value",
+                    "value": 12
+                },
+                {
+                    "attribute": "minecraft:generic.scale",
+                    "operation": "add_multiplied_total",
+                    "value": {
+                        "min": -0.15,
+                        "max": 0.25
+                    }
+                }
+            ],
+            "effects": [
+                {
+                    "amplifier": 1,
+                    "effect": "minecraft:fire_resistance"
+                }
+            ],
+            "enchant_chance": 0.75,
+            "enchantment_levels": {
+                "primary": 45,
+                "secondary": 30
+            }
+        }
+    }
+}
