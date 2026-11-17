@@ -16,6 +16,10 @@ node build/verify_readme.js
 | `validate_invaders.js` | 入侵者数据文件的结构、约束、条件链（5 个 profile） |
 | `verify_entity_switches.js` | 实体开关 ↔ 数据文件 ↔ 语言键 三方一致 |
 | `verify_mixin.js` | BossSpawnerTileMixin 的目标方法与描述符 |
+| `verify_mob_cap.js` | 多人刷怪上限三个注入点的目标、handler 元数、倍率算术 |
+| `verify_hud_compat.js` | MiniHUD / Servux 第三方注入目标、冷开关、未安装时跳过 |
+| `test_fake_tier_sync.js` | 假人层级继承的四个场景与解析优先级 |
+| `test_hot_reload.js` | 配置热更新：无重启标记、无静态缓存、缓存键含世代计数 |
 | `verify_creative_filter.js` | 索敌修复的两个 @Redirect 目标 |
 | `verify_vanilla_bosses.js` | 原版三大 BOSS 的设定与风险点 |
 | `verify_piglich_gear.js` | 猪巫妖装备钩子的顺序与概率 |
@@ -44,6 +48,7 @@ node build/verify_readme.js
 | `PLACEBO_JAR` | Placebo 的 jar | `verify_mixin.js` |
 | `APOTH_REF_DIR` | 解包后的 `data/apotheosis/apothic_invaders` 参考目录 | `gen_*.js` |
 | `MC_SOURCES_JAR` | NeoForge 的 `neoforge-*-sources.jar` | 少数检查原版行为的脚本 |
+| `MC_JAR` | NeoForge 的 `neoforge-*-merged.jar` | `verify_mob_cap.js`（要反汇编原版字节码） |
 | `JAVAP` | `javap` 可执行文件路径 | 依赖字节码的脚本 |
 
 **依赖 jar 从哪里来**：脚本按以下顺序查找，通常不需要设置任何变量：

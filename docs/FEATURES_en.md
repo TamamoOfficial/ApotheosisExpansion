@@ -416,3 +416,223 @@ data/apotheosis/apothic_invaders/
 **Adding a new integration folder means adding it to `OWN_FOLDERS`**, or that group will leak into
 spawners. `build/test_filter_predicate.js` checks both directions: every folder on disk must be in the
 set, and every set member must exist on disk.
+
+---
+
+## 12. Shared monster budget for grouped players
+
+### How the vanilla cap works
+
+The spawn budget is enforced in **two** places at once, and relaxing only one of them changes nothing:
+
+| Scope | Location | Rule |
+|---|---|---|
+| Per player | `LocalMobCapCalculator.canSpawn` | Each player within 128 blocks gets 70; spawning is allowed when **any** of them has room |
+| Per level | `NaturalSpawner.SpawnState.canSpawnForCategory` | `70 × (union of every player's 17×17 spawn boxes) / 289` |
+
+The second one is the trap: it uses the **union**. Two players standing together have almost entirely
+overlapping boxes, so the union stays near 289 — and the cap stays at **one player's worth (70)**. That
+is why two players idling on one platform gain nothing.
+
+### What this mod changes
+
+Both limits are multiplied by the same factor:
+
+```
+multiplier = 1 + bonus × (n - 1)          n = nearby players sharing a world tier
+```
+
+With the default `bonus = 0.5`:
+
+| Same-tier players | Multiplier | Monster cap |
+|---|---|---|
+| 1 | ×1.0 | 70 (vanilla) |
+| 2 | ×1.5 | **105** |
+| 3 | ×2.0 | **140** |
+| 4 | ×2.5 | 175 |
+
+To reach 140 with only two players, set `mob_cap_bonus_per_player` to `1.0`.
+
+### Why only same-tier players count
+
+Apotheosis already picks mob strength from the **nearest** player's world tier (invader chance, tier
+augments, elite weights). Counting all players would let a haven player standing next to a pinnacle
+player raise the budget too, which contradicts that model. Restricting to one tier keeps both systems
+consistent: **same-tier groups are rewarded, mixed-tier groups are not.** If several tiers are nearby,
+the **largest single group** is used.
+
+### Hostile mobs only
+
+`MobCapScaler.scaleCap` returns the base value unchanged for `category.isFriendly()`. Animals and water
+creatures keep their own vanilla caps — widening those would only let passive farms eat into the hostile
+budget through unrelated bookkeeping.
+
+### Spawners are untouched
+
+`BaseSpawner` uses its own `MaxNearbyEntities` (default 6) and never passes through the
+`NaturalSpawner` cap check. This change does not touch it either.
+
+### Implementation
+
+| Class | Role |
+|---|---|
+| `spawn/MobCapScaler` | Multiplier math, same-tier grouping, per-(level, tick, chunk) memo |
+| `mixin/spawn/LocalMobCapCalculatorMixin` | Pushes the chunk's multiplier at the head of `canSpawn` |
+| `mixin/spawn/MobCountsMixin` | Redirects `getMaxInstancesPerChunk()` — the per-player 70 |
+| `mixin/spawn/SpawnStateMixin` | Redirects the same call — the level-wide 70 |
+
+The multiplier travels through a `ThreadLocal<Deque<Double>>`: `MobCounts` is a package-private nested
+class that only receives a `MobCategory` and has no access to the chunk, so the outer method computes it
+and the nested one reads it back. A deque rather than a single value keeps the outer frame intact if a
+spawn callback re-enters spawning.
+
+The multiplier **stays fractional**. Rounding it first would turn a 0.5 bonus at two players into ×2
+(140) instead of the documented ×1.5 (105).
+
+### HUD mods and the displayed cap
+
+MiniHUD and Servux **do not read** the result of the spawn check. Each recomputes the same formula:
+
+```java
+int capacity = category.getMaxInstancesPerChunk() * spawnableChunks / 289;
+```
+
+So after the cap is widened they keep printing `x/70` — the panel disagrees with the world.
+
+`sync_mob_cap_to_hud` (**cold switch, off by default**) redirects that single
+`getMaxInstancesPerChunk()` call inside their code, via the separate
+`apotheosis_expansion.compat.mixins.json`. Their own arithmetic (multiply by chunk count,
+divide by 289) is left intact:
+
+| Target | Class → method | Role |
+|---|---|---|
+| MiniHUD | `MobCapDataHandler` → `lambda$updateIntegratedServerMobCaps$1` | Single-player / integrated-server local calculation |
+| Servux | `DataLoggerMobCaps` → `getResult` | Server push, which MiniHUD prefers over its own numbers |
+
+**With the switch off there is no side effect at all**: the bridge returns `null` and each handler
+falls back to `receiver.getMaxInstancesPerChunk()`, i.e. the unpatched value.
+
+**Why a separate config plus a plugin**: these two mixins target classes that live in other mods.
+When the target mod is absent, Mixin cannot resolve the class. `CompatMixinPlugin` consults
+`ModList` in `shouldApplyMixin`, so an uninstalled mod means the mixin is **never attempted** and
+no error is produced.
+
+**Display granularity**: the per-dimension maximum — the highest multiplier any player in that
+dimension can reach — matching the HUD's own level-wide granularity, not the value for the block
+under your feet. Friendly categories are not scaled, exactly as on the spawn side.
+
+### Fake players and HUD compat: three traps that only show up at runtime
+
+All three compile cleanly and start cleanly, and their symptoms look alike. Recorded here so they are not repeated.
+
+#### 1. A mixin package must not contain ordinary classes
+
+Mixin treats the config's `package` as a package **it owns**. Every class inside is parsed as a mixin, and
+**direct references to it are forbidden**, producing at runtime:
+
+```
+IllegalClassLoadError: ... is in a defined mixin package ... and cannot be referenced directly
+```
+
+The crash lands in `ServerChunkCache.tickChunks` - only when spawning happens - so **the title screen is
+perfectly fine**. "The game launches" therefore proves nothing about whether the injection works.
+
+`LocalMobCapAccess`, `MobCapHudBridge` and `CompatMixinPlugin` therefore live under `spawn/` and `compat/`;
+`mixin/` holds nothing but `@Mixin` classes. Section 1 of `build/verify_hud_compat.js` enforces this.
+
+#### 2. Never probe for a target class with `Class.forName`
+
+`CompatMixinPlugin` has to tell whether a third-party mod is present. The first version only asked
+`ModList.isLoaded`, which is not yet populated when a Mixin plugin runs, so **all three targets returned false**
+and every compat mixin silently stopped applying.
+
+The second version added `Class.forName(className, false, loader)` as a fallback - **a worse mistake**: it
+**defines and loads** the class, and once a class is in the loader's cache Mixin can never transform it again.
+The plugin then correctly reported `enabled` while `Mixing ... into ...` never happened, and because the config
+is `"required": false`, **nothing was logged at all**.
+
+The correct check reads the resource and defines nothing:
+
+```java
+String resource = className.replace('.', '/') + ".class";
+return loader.getResource(resource) != null;
+```
+
+`verify_hud_compat.js` strips comments and searches for `Class.forName` to keep this from coming back.
+
+#### 3. A fake player's world tier defaults to `HAVEN`
+
+A fake is a real `ServerPlayer` that never logs in, so its `WorldTier` attachment keeps the default `HAVEN`.
+The shared cap only counts players of the **same tier**, so a fake standing next to you changes nothing.
+
+With `fake_players_inherit_world_tier` on, tiers are inherited in this order:
+
+| Priority | Source | May overwrite an existing tier |
+|---|---|---|
+| 0 | The **issuer** of `/player ... spawn` (captured at command HEAD by `CarpetPlayerCommandMixin`; command blocks included) | yes |
+| 1 | An online real player with the same name | yes |
+| 2 | An online real player with the same UUID (carpet shadow players) | yes |
+| 3 | The nearest real player in the same dimension | no - fills in the default only |
+
+Source 3 is a pure guess, used only to fill an unset tier; otherwise a fake parked on a shared platform would
+change owner whenever someone walked past.
+
+**Note**: the tier is written to `playerdata`, so it updates on the next spawn - existing fakes do not change.
+
+### Diagnostics
+
+| Switch | Log tag | Purpose |
+|---|---|---|
+| `debug_mob_cap` | `ApotheosisExpansion/MobCap` | Per chunk per tick: nearby player tiers, group size, multiplier |
+| always on | `ApotheosisExpansion/FakeTier` | Tier inheritance: from whom, via which source, result |
+| `debug_mob_cap` | `ApotheosisExpansion/HudHook` | Proof of life for MiniHUD's cap read (present = injection installed and called) |
+
+The `HudHook` line matters most: if it never appears, the injection did not apply or the HUD never runs that
+calculation - at which point "the display logic must be wrong" is no longer a valid hypothesis.
+
+### The cross-tier counting switch
+
+By default only **same-tier** players count, matching Apotheosis' own tier model. With
+`mob_cap_count_all_tiers` on, every non-spectator player in range counts instead - the literal
+`70 × (1 + 0.5 × (nearby - 1))`:
+
+| Case | Off (default) | On |
+|---|---|---|
+| 1 haven + 2 frontier | counts the 2 frontier players → x1.5 (105) | counts all 3 → x2.0 (140) |
+
+Both modes share the same formula and the `mob_cap_max_players` ceiling, and both ignore spectators and
+friendly categories.
+
+### Hot reload: an in-game edit applies immediately
+
+None of the cap options require a restart, a relog, or `/reload`.
+
+> **Note**: `/reload` reloads **data packs** (`MinecraftServer.reloadResources` rebuilds
+> `ReloadableServerResources`). It does **not** reload a mod's TOML config.
+
+Three paths all work:
+
+1. **In-game config screen** - change the value, hit Done/Save, it applies at once
+2. **Edit the toml file and save it** - NeoForge's `ConfigTracker` installs a file watcher and fires
+   `ModConfigEvent.Reloading`
+3. No command is needed for either
+
+This works because of three deliberate choices:
+
+| Choice | Why |
+|---|---|
+| Options are **not** marked `worldRestart`/`gameRestart` | otherwise NeoForge keeps the old cached value until a restart |
+| Every use reads `Config.xxx()`, nothing is copied into a static field | otherwise the value freezes at class-init time |
+| Every config change calls `MobCapScaler.clearCache()`, and the memo key carries a **generation counter** | see below |
+
+**The generation counter** is the subtle part. Clearing the map is not sufficient: a chunk can be queried
+twice within one tick, so a value written before the clear would still look structurally valid and keep
+being served. Folding `GENERATION++` into the key makes the old entry **impossible to match** instead of
+relying on clear-then-read ordering.
+
+`build/test_hot_reload.js` guards all of this: no restart markers, no static caching, and a memo key that
+carries a generation counter which `clearCache` increments.
+
+**Fake player tiers are the one exception**: `fake_players_inherit_world_tier` is evaluated when a fake
+**joins**, so flipping the switch needs a **re-spawn** of that fake - not a caching problem, the event
+simply only happens once.

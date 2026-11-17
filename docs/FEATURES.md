@@ -392,3 +392,214 @@ data/apotheosis/apothic_invaders/
 **新增联动目录时必须同步加进 `OWN_FOLDERS`**，否则该组条目会漏进刷怪笼。
 `build/test_filter_predicate.js` 会双向核对：磁盘上每个目录都必须在集合里，
 集合里每一项也必须在磁盘上存在。
+
+---
+
+## 十二、多人共享刷怪额度
+
+### 原版上限是怎么算的
+
+刷怪预算被**两处**同时限制，只放宽一处等于没放宽：
+
+| 层级 | 位置 | 规则 |
+|---|---|---|
+| 每人 | `LocalMobCapCalculator.canSpawn` | 128 格内**每个**玩家各自有 70 只额度，**任意一人有余量**就允许刷 |
+| 全维度 | `NaturalSpawner.SpawnState.canSpawnForCategory` | `70 × 所有玩家 17×17 刷怪区块框的并集 / 289` |
+
+第二处是陷阱：它取的是**并集**。两人贴着站，两个 17×17 框几乎完全重合，并集仍约 289，
+于是**还是只有一个人的量（70）**。这就是「两人一起挂机毫无收益」的根因。
+
+### 本模组怎么改
+
+两处上限同乘一个倍率：
+
+```
+multiplier = 1 + bonus × (n - 1)          n = 附近「同层级」玩家人数
+```
+
+默认 `bonus = 0.5`：
+
+| 同层级人数 | 倍率 | 怪物上限 |
+|---|---|---|
+| 1 | ×1.0 | 70（原版） |
+| 2 | ×1.5 | **105** |
+| 3 | ×2.0 | **140** |
+| 4 | ×2.5 | 175 |
+
+想要「两人就满 140」，把 `mob_cap_bonus_per_player` 设成 `1.0`。
+
+### 为什么只统计同层级
+
+神化本身就按**最近玩家**的世界层级决定刷出的怪有多强（入侵者概率、层级增益、精英权重）。
+若按总人数算，一个 haven 玩家站在 pinnacle 玩家旁边也能抬高额度，与神化的模型矛盾。
+限制在单一层级内，两套系统才一致：**同层级组队有奖励，混层级组队没有**。
+若附近有多个层级，取**最大的那一组**。
+
+### 只影响敌对生物
+
+`MobCapScaler.scaleCap` 对 `category.isFriendly()` 直接返回原值。动物、水生物沿用各自的原版上限——
+放宽它们只会让被动农场通过无关的记账方式挤占敌对额度。
+
+### 刷怪笼完全不受影响
+
+`BaseSpawner` 走的是自己的 `MaxNearbyEntities`（默认 6），从不经过 `NaturalSpawner` 的上限判定。
+本改动也不碰它。
+
+### 实现落点
+
+| 类 | 作用 |
+|---|---|
+| `spawn/MobCapScaler` | 倍率计算、同层级分组、按 (维度, tick, 区块) 的每 tick 备忘 |
+| `mixin/spawn/LocalMobCapCalculatorMixin` | 在 `canSpawn` 头部压入本区块倍率 |
+| `mixin/spawn/MobCountsMixin` | 重定向 `getMaxInstancesPerChunk()`，改掉每人的 70 |
+| `mixin/spawn/SpawnStateMixin` | 重定向同一调用，改掉全维度的 70 |
+
+倍率通过 `ThreadLocal<Deque<Double>>` 传递：`MobCounts` 是包私有嵌套类，只拿得到 `MobCategory`，
+拿不到区块，只能由外层算好再取回。用双端队列而非单值，是为了在刷怪回调里再触发刷怪（重入）时，
+外层帧的值不被内层覆盖。
+
+倍率**保持小数**。若先取整，0.5 加成下两人会变成 ×2（140）而不是文档承诺的 ×1.5（105）。
+
+
+### 与 HUD 模组的上限显示
+
+MiniHUD 与 Servux **不读取**刷怪判定的结果，各自在代码里重算同一条公式：
+
+```java
+int capacity = category.getMaxInstancesPerChunk() * spawnableChunks / 289;
+```
+
+因此上限被放宽后，它们仍会显示 `x/70`——面板与实际不符。
+
+`sync_mob_cap_to_hud`（**冷开关，默认关闭**）开启后，本模组用独立的
+`apotheosis_expansion.compat.mixins.json` 重定向它们代码内的那一处
+`getMaxInstancesPerChunk()` 调用，其余算式（乘区块数、除以 289）原样保留：
+
+| 目标 mod | 类 → 方法 | 说明 |
+|---|---|---|
+| MiniHUD | `MobCapDataHandler` → `lambda$updateIntegratedServerMobCaps$1` | 单人 / 集成服本地计算 |
+| Servux | `DataLoggerMobCaps` → `getResult` | 服务端推送，MiniHUD 优先读它 |
+
+**关闭时完全没有副作用**：桥接类返回 `null`，处理函数直接回退到
+`receiver.getMaxInstancesPerChunk()`，即未打补丁时的原值。
+
+**为什么是独立配置 + 插件**：这两个 mixin 的目标类在别人的 mod 里。目标 mod 不存在时
+Mixin 会解析失败。`CompatMixinPlugin` 在 `shouldApplyMixin` 里查 `ModList`，
+**没装就根本不尝试**，不会产生任何报错。
+
+**显示口径**：按维度的最大值（该维度内任意玩家所能达到的最高倍率），
+与 HUD 本身的「全维度」口径一致；不是玩家脚下那一格的值。友好生物分类不缩放，
+与刷怪侧完全一致。
+
+
+### 假人与 HUD 兼容：三个只在运行期才暴露的坑
+
+这三处都不会编译报错、不会在启动时报错，症状还高度相似，记录在此避免重蹈。
+
+#### 一、mixin 包下不能放普通类
+
+Mixin 把配置里的 `package` 视为**自己拥有的包**。包内任何类都会被当作 mixin 解析，
+并且**禁止被外部直接引用**，否则运行期抛：
+
+```
+IllegalClassLoadError: ... is in a defined mixin package ... and cannot be referenced directly
+```
+
+崩溃发生在 `ServerChunkCache.tickChunks`（都是刷怪时才触发），**标题界面完全正常**，
+所以「能进游戏」不能证明注入正确。
+
+因此 `LocalMobCapAccess`、`MobCapHudBridge`、`CompatMixinPlugin` 都放在
+`spawn/` 与 `compat/` 下，`mixin/` 里只留带 `@Mixin` 的类。
+`build/verify_hud_compat.js` 第 1 节会强制检查这一点。
+
+#### 二、探测目标类存在时，绝对不能用 `Class.forName`
+
+`CompatMixinPlugin` 需要判断第三方 mod 是否在场。第一版只查 `ModList.isLoaded`，
+结果在 Mixin 插件阶段它还没被填充，**三个目标全部返回 false**，所有 compat mixin 静默失效。
+
+第二版加了 `Class.forName(className, false, loader)` 作为兜底——**这是更糟的错误**：
+它会**定义并加载**该类，类进入加载器缓存后再也无法被 Mixin 转译。
+插件于是正确报告 `enabled`，而 `Mixing ... into ...` 一次都不发生，
+且因为配置是 `"required": false`，**没有任何报错**。
+
+正确做法是**读资源、不定义类**：
+
+```java
+String resource = className.replace('.', '/') + ".class";
+return loader.getResource(resource) != null;
+```
+
+`verify_hud_compat.js` 会剥离注释后搜索 `Class.forName`，防止这个写法回潮。
+
+#### 三、假人的世界层级默认是 `HAVEN`
+
+假人是真正的 `ServerPlayer`，但不走登录流程，`WorldTier` 附件停在默认 `HAVEN`。
+共享额度只统计**同层级**玩家，所以假人挨着你也抬不高上限。
+
+`fake_players_inherit_world_tier` 开启后，按以下优先级继承：
+
+| 优先级 | 来源 | 能否覆盖已有层级 |
+|---|---|---|
+| 0 | `/player ... spawn` 的**发出者**（`CarpetPlayerCommandMixin` 在命令 HEAD 处捕获，命令方块也能识别） | ✅ |
+| 1 | 同名的在线真人 | ✅ |
+| 2 | 同 UUID 的在线真人（carpet 影子玩家） | ✅ |
+| 3 | 同维度最近的真人 | ❌ 只补默认值 |
+
+第 3 条是纯猜测，只用来补全未设置的层级；否则共享平台上的假人会在别人路过时莫名换主人。
+
+**注意**：假人层级会写进 `playerdata`，重新召唤才更新，已存在的假人不会自动变。
+
+### 排查手段
+
+| 开关 | 日志标签 | 用途 |
+|---|---|---|
+| `debug_mob_cap` | `ApotheosisExpansion/MobCap` | 每个区块每 tick 列出附近玩家层级、分组、倍率 |
+| 常开 | `ApotheosisExpansion/FakeTier` | 假人层级继承：从谁、走哪条路径、结果 |
+| `debug_mob_cap` | `ApotheosisExpansion/HudHook` | MiniHUD 那次调用的存活证明（有它=注入已装且被调用） |
+
+`HudHook` 那条尤其重要：它不出现，就说明注入没生效或 HUD 根本没走这条计算路径，
+此时不要再猜「显示逻辑有问题」。
+
+### 跨层级计数开关
+
+默认只统计**同层级**玩家（与神化的层级模型一致）。`mob_cap_count_all_tiers`
+打开后改为统计范围内**所有**非旁观玩家，即字面意义的 `70 × (1 + 0.5 × (附近人数 - 1))`：
+
+| 场景 | 关闭（默认） | 开启 |
+|---|---|---|
+| 1 haven + 2 frontier | 只算 2 个 frontier → x1.5（105） | 算全部 3 个 → x2.0（140） |
+
+两种模式共用同一套倍率公式与 `mob_cap_max_players` 上限，都会忽略旁观者与友好生物分类。
+
+### 热更新：游戏内改完立即生效
+
+所有怪物上限相关选项**都不需要重启、不需要重进、不需要 `/reload`**。
+
+> **注意**：`/reload` 重载的是**数据包**（`MinecraftServer.reloadResources`
+> 重建 `ReloadableServerResources`），**不会**重载模组的 TOML 配置。
+
+生效路径有三条，任选其一：
+
+1. **游戏内配置界面** — 本模组配置页改完点「Done」/「保存」，立即生效
+2. **直接编辑 toml 文件并保存** — NeoForge 的 `ConfigTracker` 装了文件监视器，
+   自动触发 `ModConfigEvent.Reloading`
+3. 改完不需要任何命令
+
+之所以能立即生效，靠的是三个设计：
+
+| 设计 | 作用 |
+|---|---|
+| 选项**不**标记 `worldRestart`/`gameRestart` | 否则 NeoForge 会保留旧缓存值直到重启 |
+| 每次使用都读 `Config.xxx()`，**不缓存到静态字段** | 否则值在类初始化时就被冻结 |
+| 每次配置变化都 `MobCapScaler.clearCache()`，且缓存键带**世代计数** | 见下 |
+
+**世代计数**是关键细节：只清空 Map 并不够。同一 tick 内一个区块可能被查询两次，
+若清空发生在写入之前，那条旧值在结构上仍然合法、会被继续命中。
+把 `GENERATION++` 折进缓存键后，旧条目变成**结构上不可能匹配**，
+而不是依赖「先清空后读取」的顺序。
+
+`build/test_hot_reload.js` 会用三项检查守住这些：无重启标记、无静态缓存、
+缓存键含世代计数且 `clearCache` 会自增它。
+
+**假人层级是个例外**：`fake_players_inherit_world_tier` 的判定发生在假人**进服那一刻**，
+所以改开关后需要**重新召唤假人**才生效——这不是缓存问题，是事件本身只有一次。

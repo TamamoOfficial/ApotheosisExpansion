@@ -81,6 +81,24 @@ public final class Config {
     public static final BooleanValue ENABLE_WARDEN_UNLOCK;
     public static final BooleanValue ENABLE_ELDER_GUARDIAN_UNLOCK;
 
+    // ==== [player] =========================================================
+
+    public static final BooleanValue ENABLE_RESPAWN_HEALTH_FIX;
+
+    // ---- multiplayer monster cap ------------------------------------------
+
+    public static final BooleanValue ENABLE_MOB_CAP_SCALING;
+    public static final BooleanValue MOB_CAP_COUNT_ALL_TIERS;
+    public static final DoubleValue MOB_CAP_BONUS_PER_PLAYER;
+    public static final IntValue MOB_CAP_MAX_PLAYERS;
+    public static final BooleanValue SYNC_MOB_CAP_TO_HUD;
+    public static final BooleanValue FAKE_PLAYERS_INHERIT_WORLD_TIER;
+    public static final BooleanValue DEBUG_MOB_CAP;
+
+    // ==== [adventure] ======================================================
+
+    public static final BooleanValue ENABLE_NAMED_PEACEFUL_PROTECTION;
+
     // ==== [gems] ===========================================================
 
     public static final BooleanValue ENABLE_GEM_TWEAKS;
@@ -304,6 +322,301 @@ public final class Config {
             .translation(KEY + "spawner.enable_elder_guardian_unlock")
             .define("enable_elder_guardian_unlock", true);
         b.pop(); // spawner
+
+        // ---------------------------------------------------------------- player
+        b.comment(
+            "Player behaviour fixes and multiplayer spawn tuning.",
+            "玩家行为修复与多人刷怪调整。",
+            "",
+            "The first group corrects problems that come from Apotheosis' attribute-based max",
+            "第一组选项修正由神化「基于属性的最大生命值」引起的问题，",
+            "health colliding with vanilla assumptions that max health is always 20.",
+            "这些问题的根源是原版假设最大生命值恒为 20。",
+            "",
+            "The second group widens the vanilla monster cap so that players who share one",
+            "第二组选项放宽原版怪物上限，让同处一个刷怪平台的同层级玩家",
+            "spawn area gain something from being together.",
+            "能因为组队而获得收益。")
+            .translation(KEY + "player")
+            .push("player");
+        ENABLE_RESPAWN_HEALTH_FIX = b
+            .comment(
+                "Respawn at full health measured against your real maximum, instead of a flat 20 HP.",
+                "复活时按真实最大生命值回满血，而不是固定 20 点血。",
+                "",
+                "Vanilla ServerPlayer#restoreFrom copies only attribute BASE values, then calls",
+                "原版 ServerPlayer#restoreFrom 只复制属性的「基础值」，随后调用",
+                "setHealth(getMaxHealth()) and only afterwards puts the inventory back. Item",
+                "setHealth(getMaxHealth())，之后才把物品栏还原。装备提供的属性修饰符",
+                "attribute modifiers are re-applied on the next tick, so at the moment health is",
+                "要到下一刻才会重新应用，因此读取最大生命值时装备加成还没生效，",
+                "read the gear is not counted yet and the player always returns at 20 HP.",
+                "玩家总是以 20 点血复活。",
+                "Apotheosis' own +max health armor affixes are exactly such modifiers, so a",
+                "神化护甲的 +最大生命词缀正属于这类修饰符，所以穿着 +40 最大生命的装备",
+                "player wearing them still respawns at 20/60.",
+                "死亡后复活仍然是 20/60。",
+                "",
+                "When enabled, vanilla's own respawn rule (set to full health) is re-applied on",
+                "开启后，会在复活后的第一个游戏刻（此时装备加成已恢复）重新执行原版的",
+                "the first tick after respawn, once the gear modifiers are back - so a player",
+                "「复活即回满血」规则。这样玩家会按自己的最大生命值回满血，",
+                "respawns at their real maximum. Only death respawns are affected; travelling",
+                "而不是固定 20 点。只影响死亡复活；",
+                "between dimensions keeps vanilla carry-over behaviour.",
+                "跨维度传送仍按原版规则保留当前血量。")
+            .translation(KEY + "player.enable_respawn_health_fix")
+            .define("enable_respawn_health_fix", true);
+        ENABLE_MOB_CAP_SCALING = b
+            .comment(
+                "Scale the monster cap by how many same-tier players share the area.",
+                "按同层级玩家数量成倍放宽怪物上限。",
+                "",
+                "Vanilla caps hostile mobs twice: each player within 128 blocks of a chunk gets 70",
+                "原版对敌对生物有两道上限：每个刷怪区块 128 格内的玩家各自有 70 只的",
+                "(checked per player), and the whole level is capped at",
+                "额度（逐个玩家判定），整个维度又被",
+                "  70 x (union of every player's 17x17 spawn boxes) / 289",
+                "  70 ×（所有玩家 17x17 刷怪区块框的并集）/ 289",
+                "monsters at once. That union is why two players standing together still get",
+                "限制着。正因为是「并集」，两名玩家挨着站时得到的仍然是",
+                "roughly one player's worth - their boxes overlap almost completely.",
+                "一个人的量，因为两人的区块框几乎完全重合。",
+                "",
+                "This option multiplies both limits by 1 + bonus x (n - 1), where n is the size of",
+                "本选项把两道上限同乘 1 + 倍率 × (n - 1)，n 是刷怪点附近",
+                "the largest group of nearby players that have the SAME world tier:",
+                "「世界层级相同」的最大一群玩家人数：",
+                "",
+                "  n = 1 -> x1.0   (70, unchanged - vanilla behaviour)",
+                "  n = 2 -> x1.5   (105)",
+                "  n = 3 -> x2.0   (140)",
+                "",
+                "Only same-tier players count, because Apotheosis already picks mob strength from",
+                "只统计同层级玩家，因为神化本就按最近玩家的层级决定刷出的怪物强弱，",
+                "the nearest player's tier. A mixed-tier pair would otherwise inflate the budget",
+                "若按总人数计算，层级不同的一对人也能抬高额度，",
+                "without matching that model; keeping it to one tier keeps the two systems consistent.",
+                "那与神化的模型不符；限制在单一层级内才能让两套系统保持一致。",
+                "",
+                "Only hostile categories are affected. Animals and water creatures keep their own",
+                "只影响敌对生物分类。动物与水生物沿用各自的原版上限，",
+                "vanilla caps, and mob spawners are not affected at all.",
+                "刷怪笼也完全不受影响。",
+                "",
+                "Server-authoritative; no data reload needed.",
+                "服务端生效，改动无需重载数据。")
+            .translation(KEY + "player.enable_mob_cap_scaling")
+            .define("enable_mob_cap_scaling", false);
+        MOB_CAP_COUNT_ALL_TIERS = b
+            .comment(
+                "Count every nearby player, ignoring world tier.",
+                "统计附近所有玩家，忽略世界层级。",
+                "",
+                "OFF (default): only the largest group of players sharing a world tier is counted,",
+                "关闭（默认）：只统计「世界层级相同」的最大一群玩家，",
+                "because Apotheosis already derives mob strength from the nearest player's tier.",
+                "因为神化本就按最近玩家的层级决定刷怪强弱。",
+                "",
+                "ON: every non-spectator player within range counts, so a mixed-tier group also",
+                "开启：范围内所有非旁观玩家都计入，因此混层级组队也能抬高上限，",
+                "raises the cap. This matches a plain reading of 70 x (1 + bonus x (nearby - 1)).",
+                "与 70 × (1 + 倍率 × (附近人数 - 1)) 的字面含义一致。",
+                "",
+                "  same-tier OFF: 1 haven + 2 frontier -> counts the 2 frontier players -> x1.5",
+                "  同层级 关：1 个 haven + 2 个 frontier → 只算 2 个 frontier → x1.5",
+                "  same-tier ON : 1 haven + 2 frontier -> counts all 3            -> x2.0",
+                "  同层级 开：1 个 haven + 2 个 frontier → 算 3 个 → x2.0",
+                "",
+                "Either way the multiplier is still capped by mob_cap_max_players and still",
+                "无论哪种，倍率仍受 mob_cap_max_players 限制，且仍",
+                "ignores spectators and friendly categories.",
+                "忽略旁观者与友好生物分类。",
+                "",
+                "Server-authoritative, and hot-reloadable: editing the file takes effect on the",
+                "服务端生效，且可热更新：保存文件后，下一个区块刷怪判定",
+                "next chunk pass without rejoining or restarting.",
+                "就按新值计算，无需重进或重启。")
+            .translation(KEY + "player.mob_cap_count_all_tiers")
+            .define("mob_cap_count_all_tiers", false);
+        MOB_CAP_BONUS_PER_PLAYER = b
+            .comment(
+                "Extra monster-cap multiplier per additional same-tier player.",
+                "每多一名同层级玩家，怪物上限额外增加的倍率。",
+                "",
+                "Final multiplier = 1 + bonus x (n - 1), capped at mob_cap_max_players.",
+                "最终倍率 = 1 + 倍率 × (n - 1)，n 受 mob_cap_max_players 限制。",
+                "",
+                "  0.5 -> 70 / 105 / 140 for 1 / 2 / 3 players (the default)",
+                "  1.0 -> 70 / 140 / 210 - one extra player doubles the cap",
+                "  0.0 -> no bonus at all, even with the master switch on",
+                "",
+                "Only read while enable_mob_cap_scaling is on.",
+                "仅在 enable_mob_cap_scaling 开启时读取。",
+                "",
+                "Server-authoritative.",
+                "服务端生效。")
+            .translation(KEY + "player.mob_cap_bonus_per_player")
+            .defineInRange("mob_cap_bonus_per_player", 0.5D, 0.0D, 16.0D);
+        MOB_CAP_MAX_PLAYERS = b
+            .comment(
+                "Largest player count the bonus is paid for.",
+                "参与计算的玩家数量上限。",
+                "",
+                "Acts as the ceiling of n in 1 + bonus x (n - 1), so a large server cannot scale",
+                "作为 1 + 倍率 × (n - 1) 中 n 的上限，避免大服务器把怪物上限推到",
+                "the cap without bound. Players beyond this number still spawn and fight normally,",
+                "失控。超出的玩家照常刷怪、照常战斗，",
+                "they simply stop adding budget.",
+                "只是不再增加额度。",
+                "",
+                "Server-authoritative.",
+                "服务端生效。")
+            .translation(KEY + "player.mob_cap_max_players")
+            .defineInRange("mob_cap_max_players", 8, 2, 64);
+        SYNC_MOB_CAP_TO_HUD = b
+            .comment(
+                "Show the scaled cap in MiniHUD / Servux instead of the vanilla 70.",
+                "在 MiniHUD / Servux 中显示放宽后的上限，而不是原版 70。",
+                "",
+                "Those HUDs do not read the spawn check's result; each recomputes",
+                "这些 HUD 并不读取刷怪判定的结果，而是各自在客户端/服务端重算",
+                "  capacity = getMaxInstancesPerChunk() * spawnableChunks / 289",
+                "  capacity = getMaxInstancesPerChunk() × 可刷区块 / 289",
+                "in its own code, so they keep printing x/70 no matter what the spawn",
+                "因此无论刷怪侧放宽到多少，它们都会继续显示 x/70。",
+                "side actually allows. With this on, the mod redirects that one call inside",
+                "开启后，本模组会重定向它们代码内的那一处调用，",
+                "their code and substitutes the real multiplier.",
+                "改用真实的倍率。",
+                "",
+                "COLD SWITCH: off by default. With it off nothing is substituted and both",
+                "冷开关：默认关闭。关闭时不做任何替换，两个",
+                "HUDs behave exactly like an unpatched install, numbers included.",
+                "HUD 的行为与未打补丁时完全一致，包括显示的数字。",
+                "",
+                "The displayed number is per-dimension (the maximum multiplier anywhere",
+                "显示的数字按维度统计（取该维度内的最大倍率），",
+                "in that dimension), matching the HUD's own level-wide granularity - not the",
+                "与 HUD 本身的「全维度」口径一致，而不是",
+                "value for the block you are standing on.",
+                "你脚下这一格的值。",
+                "",
+                "Only affects HUDs that are actually installed. Requires",
+                "只影响实际安装了的 HUD；需同时开启",
+                "enable_mob_cap_scaling. Server-authoritative (inputs), but the HUD side",
+                "enable_mob_cap_scaling。数值计算在服务端，但 HUD 侧",
+                "must be able to read the option, so it is a COMMON option.",
+                "需要读到该选项，因此放在 COMMON 配置中。")
+            .translation(KEY + "player.sync_mob_cap_to_hud")
+            .define("sync_mob_cap_to_hud", false);
+        FAKE_PLAYERS_INHERIT_WORLD_TIER = b
+            .comment(
+                "Fake players take their summoner's world tier.",
+                "假人继承召唤者的世界层级。",
+                "",
+                "Apotheosis keeps the world tier in an attachment that only its own setter writes.",
+                "神化把世界层级存在一个只由它自己写入的附件里。",
+                "A fake player is a real ServerPlayer that never logs in, so it keeps the",
+                "假人是真正的 ServerPlayer，但从不走登录流程，所以它始终停在",
+                "default HAVEN - and the shared monster cap only counts players of the SAME",
+                "默认的 HAVEN——而共享刷怪额度只统计「同层级」玩家，",
+                "tier, so a fake standing next to you never raises the cap.",
+                "因此挨着你站的假人永远抬不高上限。",
+                "",
+                "When enabled, a fake player adopts the tier of:",
+                "开启后，假人会取以下来源的层级：",
+                "  1. an online player with the same name  (/player Steve spawn)",
+                "  1. 同名的在线玩家（/player Steve spawn）",
+                "  2. an online player with the same UUID   (carpet shadow players)",
+                "  2. 同 UUID 的在线玩家（carpet 影子玩家）",
+                "  3. the nearest real player in the same dimension",
+                "  3. 同一维度内最近的真实玩家",
+                "",
+                "Sources 1 and 2 are authoritative and always win, so a fake re-spawned by a",
+                "来源 1 与 2 是权威的，永远优先：假人被 A 召唤过、退出后再由 B 召唤时，",
+                "different player follows its new owner. That is what makes the tier saved in",
+                "会改成 B 的层级。假人退出时层级会写进 playerdata，这条规则就是用来",
+                "the fake's playerdata harmless across re-spawns.",
+                "让那份存档数据不碍事的。",
+                "",
+                "Source 3 is only a guess based on distance, so it fills in a missing or",
+                "来源 3 只是按距离猜的，因此它只用来补全「尚未设置」或仍为默认值的层级，",
+                "still-default tier but never overwrites a deliberate one. Otherwise a fake",
+                "绝不覆盖已经明确设过的层级——否则共享平台上的假人会在",
+                "parked on a busy platform would change owner whenever another player walked by.",
+                "别的玩家路过时莫名其妙地换主人。",
+                "",
+                "Server-authoritative. Has no effect when no fake-player mod is installed.",
+                "服务端生效。未安装假人模组时完全无影响。")
+            .translation(KEY + "player.fake_players_inherit_world_tier")
+            .define("fake_players_inherit_world_tier", false);
+        DEBUG_MOB_CAP = b
+            .comment(
+                "Log the monster-cap multiplier calculation.",
+                "记录怪物上限倍率的计算过程。",
+                "",
+                "Prints one INFO line per chunk per tick listing every nearby player with",
+                "每个区块每 tick 打一条 INFO，列出附近每个玩家及其",
+                "the world tier it resolved to, the largest same-tier group, and the resulting",
+                "解析出的世界层级、最大同层级组的大小、以及最终倍率。",
+                "multiplier. That is the only way to see why the bonus did or did not apply.",
+                "这是唯一能看清加成为何生效/不生效的办法。",
+                "",
+                "Very loud - enable it, read the log, then turn it off.",
+                "非常吵——排查时打开，看完就关掉。",
+                "",
+                "Server-authoritative.",
+                "服务端生效。")
+            .translation(KEY + "player.debug_mob_cap")
+            .define("debug_mob_cap", false);
+        b.pop(); // player
+
+        // ---------------------------------------------------------------- adventure
+        b.comment(
+            "Adventure behaviour tweaks.",
+            "冒险行为调整。",
+            "",
+            "Currently: keeping player-named mobs alive when the world is switched to Peaceful.",
+            "当前包含：切换到和平模式时，保留被玩家命名的生物。")
+            .translation(KEY + "adventure")
+            .push("adventure");
+        ENABLE_NAMED_PEACEFUL_PROTECTION = b
+            .comment(
+                "Mobs a player named with a name tag survive Peaceful.",
+                "玩家用命名牌命名的生物，在和平模式下不会消失。",
+                "",
+                "Vanilla deletes hostile mobs on Peaceful before it ever looks at the persistence flag,",
+                "原版在和平模式下删除敌对生物，这个判断排在持久化标记之前，",
+                "so a name tag - which only sets that flag - does nothing. This cannot be fixed from",
+                "而命名牌只设置持久化标记，所以完全无效。",
+                "",
+                "The rule keys off the entity tag 'apotheosis_expansion.named', which is applied when a",
+                "本规则依据实体标签 'apotheosis_expansion.named'，该标签只在玩家成功使用命名牌时，",
+                "player successfully applies a name tag. It is not the custom name, because Apotheosis",
+                "才会被打上。它不看自定义名称，因为神化会给每个入侵者和小头目",
+                "generates a name for every invader and elite, and slime splits inherit the parent name;",
+                "自动生成名字，史莱姆分裂也会继承父体名字，",
+                "using the name would protect mobs the player never touched.",
+                "用名称判断会连带保护玩家从未命名过的生物。",
+                "",
+                "The tag persists in the save and can be managed by command:",
+                "该标签会随存档保存，也可以用命令增删：",
+                "/tag @e[type=zombie] add apotheosis_expansion.named",
+                "/tag @e[type=zombie] add apotheosis_expansion.named",
+                "",
+                "A protected mob still cannot target or damage a player in Peaceful, but it can attack",
+                "受保护的生物在和平模式下仍然无法把玩家设为目标、也打不出伤害，但它可以攻击",
+                "villagers and animals, and creepers/withers can still break blocks.",
+                "村民和动物，苦力怕和凋灵也照样能破坏方块。",
+                "",
+                "Note: the tag is lost on mob conversion (zombie to drowned, villager to witch) and on",
+                "注意：生物转换（僵尸变溺尸、村民变女巫）和史莱姆分裂时标签会丢失，",
+                "slime splitting; re-tag the result if needed.",
+                "需要时请对结果重新打标。")
+            .translation(KEY + "adventure.enable_named_peaceful_protection")
+            .define("enable_named_peaceful_protection", true);
+        b.pop(); // adventure
 
         // ---------------------------------------------------------------- gems
         b.comment(
@@ -685,6 +998,42 @@ public final class Config {
 
     public static boolean enableElderGuardianUnlock() {
         return ENABLE_ELDER_GUARDIAN_UNLOCK.get();
+    }
+
+    public static boolean enableRespawnHealthFix() {
+        return ENABLE_RESPAWN_HEALTH_FIX.get();
+    }
+
+    public static boolean enableMobCapScaling() {
+        return ENABLE_MOB_CAP_SCALING.get();
+    }
+
+    public static boolean mobCapCountAllTiers() {
+        return MOB_CAP_COUNT_ALL_TIERS.get();
+    }
+
+    public static double mobCapBonusPerPlayer() {
+        return MOB_CAP_BONUS_PER_PLAYER.get();
+    }
+
+    public static int mobCapMaxPlayers() {
+        return MOB_CAP_MAX_PLAYERS.get();
+    }
+
+    public static boolean syncMobCapToHud() {
+        return SYNC_MOB_CAP_TO_HUD.get();
+    }
+
+    public static boolean fakePlayersInheritWorldTier() {
+        return FAKE_PLAYERS_INHERIT_WORLD_TIER.get();
+    }
+
+    public static boolean debugMobCap() {
+        return DEBUG_MOB_CAP.get();
+    }
+
+    public static boolean enableNamedPeacefulProtection() {
+        return ENABLE_NAMED_PEACEFUL_PROTECTION.get();
     }
 
     public static boolean enableGemTweaks() {

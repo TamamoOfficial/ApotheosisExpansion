@@ -11,14 +11,24 @@ authors="Tamamo"
 description='''
 Adds random Apotheosis affixes and gem sockets to items crafted by players,
 unlocks selected spawn eggs for mob spawners, tunes gem drop rates, and
-adds Apotheosis Invaders for the Thermal Series elementals.
+adds Apotheosis Invaders for several other mods' mobs.
 
-Every feature is independently toggleable from the in-game mod config screen and
-takes effect immediately. The Thermal invader entries additionally need a data reload after being toggled.
+Also fixes two player-facing behaviours (respawn health, player-named mobs in
+Peaceful), and adds a shared monster budget that lets players on one spawn
+platform raise the cap together - optionally across world tiers, with fake
+players inheriting their summoner's tier.
+
+Almost every option applies as soon as it is saved; only the invader switches
+need a data reload.
 '''
 
 [[mixins]]
 config="apotheosis_expansion.mixins.json"
+
+# HUD compatibility patches live in their own config so a missing MiniHUD / Servux can never fail the main one.
+# The config is "required": false and CompatMixinPlugin checks the mod list before any mixin is resolved.
+[[mixins]]
+config="apotheosis_expansion.compat.mixins.json"
 
 [[dependencies.apotheosis_expansion]]
 modId="neoforge"

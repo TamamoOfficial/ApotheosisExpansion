@@ -26,6 +26,15 @@ Every feature can be toggled independently from the in-game config screen.
 | **Spawn egg unlock** | Lifts the spawner restriction on Warden and Elder Guardian eggs |
 | **Repair-combine fix** | Fixes affixes being re-rolled when combining two items in an anvil |
 | **Gem drop tuning** | Scales gem drop rates and weights by multiplier |
+| **Shared monster budget** | Players sharing a spawn platform raise the monster cap together; optionally across tiers |
+
+### Player fixes
+
+| Module | Description |
+|---|---|
+| **Respawn health fix** | Respawns at the real maximum health instead of a flat 20 HP |
+| **Named-mob peaceful protection** | Player-named mobs survive switching the world to Peaceful |
+| **Fake player tier inheritance** | Fake players adopt their summoner's world tier, so the shared cap works for them too |
 
 ### Mod integration
 
@@ -47,6 +56,12 @@ absent its whole group disappears.
 | **Wither** | 10% chance when player-built, tiered by dimension |
 | **Ender Dragon** | First dragon of the save only, always the highest rarity |
 | **Targeting fix** | Bosses no longer force-target creative/spectator players |
+
+### HUD compatibility
+
+| Module | Description |
+|---|---|
+| **Cap sync to HUD** | Optionally makes MiniHUD / Servux show the widened real cap instead of the vanilla 70 |
 
 ---
 
@@ -73,13 +88,14 @@ Drop the jar into `mods/`. Required on both client and server.
 
 ## Configuration
 
-Config file `config/apotheosis_expansion-common.toml`: 4 sections, 37 entries.
+Config file `config/apotheosis_expansion-common.toml`: 5 sections, 46 entries.
 The in-game screen groups switches **by mod**; absent mods produce no empty switches.
 
-Full key reference: [Feature Details · Config](docs/CONFIG_en.md).
+Full key reference: [Config & Build](docs/CONFIG_en.md).
 
-**Reloading**: crafting / spawn eggs / gem multipliers apply immediately; **invader switches need a
-data reload** (`F3+T` or rejoin the world).
+**Reloading**: almost every option **applies as soon as you save it** — no restart, no command. The
+exception is the invader switches, which feed data-pack conditions and need a data reload (`F3+T` or
+`/reload`). Per-feature breakdown: [Config & Build](docs/CONFIG_en.md#reloading).
 
 ---
 

@@ -137,6 +137,28 @@ function mcSourcesJar() {
   return requireEnv('MC_SOURCES_JAR', 'Path to neoforge-*-sources.jar (a NeoForge moddev artifact)');
 }
 
+/**
+ * Minecraft + NeoForge classes (`-merged.jar`), for checks that disassemble vanilla bytecode.
+ *
+ * Distinct from {@link mcSourcesJar}: the sources jar has the `.java` files, but `javap -c` needs
+ * class files, and this is the artifact that carries both Minecraft and NeoForge in one place.
+ */
+function mcJar() {
+  const fromEnv = optionalEnv('MC_JAR');
+  if (fromEnv) return fromEnv;
+  const candidates = [
+    rel('build', 'moddev', 'artifacts'),
+    rel('..', 'mc1.21.1-neoforge', 'build', 'moddev', 'artifacts'),
+  ];
+  for (const dir of candidates) {
+    if (!fs.existsSync(dir)) continue;
+    // `-merged` is the one holding net/minecraft classes; the plain neoforge jar only has patches.
+    const hit = fs.readdirSync(dir).find(f => /^neoforge-.*-merged\.jar$/i.test(f));
+    if (hit) return path.join(dir, hit);
+  }
+  return requireEnv('MC_JAR', 'Path to neoforge-*-merged.jar (build/moddev/artifacts, produced by `gradle build`)');
+}
+
 /** Reference data extracted from the Apotheosis jar, used only by the one-off generators. */
 function apothRefDir() {
   const fromEnv = optionalEnv("APOTH_REF_DIR");
@@ -165,6 +187,6 @@ function check(state, message) {
 
 module.exports = {
   ROOT, rel, requireEnv, optionalEnv,
-  apothJar, placeboJar, javap, mcSourcesJar, apothRefDir,
+  apothJar, placeboJar, javap, mcSourcesJar, mcJar, apothRefDir,
   INVADERS, check,
 };

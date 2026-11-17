@@ -7,7 +7,12 @@
         "AbstractContainerMenuMixin",
         "BossSpawnerTileMixin",
         "CreativeTargetFilter$NaturalSpawn",
-        "CreativeTargetFilter$BossSpawner"
+        "CreativeTargetFilter$BossSpawner",
+        "NameTagItemMixin",
+        "spawn.LocalMobCapCalculatorMixin",
+        "spawn.MobCountsMixin",
+        "spawn.SpawnStateMixin",
+        "spawn.PlayerListFakeTierMixin"
     ],
     "injectors": {
         "defaultRequire": 1

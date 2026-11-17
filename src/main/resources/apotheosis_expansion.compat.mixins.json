@@ -1,0 +1,15 @@
+{
+    "required": false,
+    "minVersion": "0.8.5",
+    "package": "com.tamamo.apotheosisexpansion.mixin.compat",
+    "compatibilityLevel": "JAVA_21",
+    "plugin": "com.tamamo.apotheosisexpansion.compat.CompatMixinPlugin",
+    "mixins": [
+        "MiniHudMobCapMixin",
+        "ServuxMobCapMixin",
+        "CarpetPlayerCommandMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}

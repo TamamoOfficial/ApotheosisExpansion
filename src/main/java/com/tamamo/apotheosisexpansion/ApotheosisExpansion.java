@@ -57,6 +57,14 @@ public class ApotheosisExpansion {
         // runtime takes effect without re-registering anything.
         NeoForge.EVENT_BUS.register(new SpawnerUnlockHandler());
 
+        // Respawn health: vanilla reads max health before gear modifiers are back, so players with
+        // Apotheosis +max health affixes come back at a flat 20 HP. See RespawnHealthHandler.
+        NeoForge.EVENT_BUS.register(new RespawnHealthHandler());
+
+        // Named hostile mobs stay alive when the world is switched to Peaceful. Uses only the supported
+        // MobDespawnEvent hook, so no vanilla method is overwritten; see NamedMobPeacefulProtection.
+        NeoForge.EVENT_BUS.register(new NamedMobPeacefulProtection());
+
         // Vanilla boss conversion (warden / wither / ender dragon). These mobs never pass through
         // Apotheosis own invader gate, so they need dedicated hooks. The handler checks each toggle
         // itself, so switching a feature off at runtime needs no re-registration.
@@ -90,12 +98,23 @@ public class ApotheosisExpansion {
             return;
         }
         String phase = event instanceof ModConfigEvent.Reloading ? "reloaded" : "loaded";
-        LOGGER.info("[ApotheosisExpansion] Config {}: affixes={}, sockets={}, rarity=[{}, {}], warden_unlock={}, elder_guardian_unlock={}, gem_tweaks={} x{}, thermal_invaders={}, mekanism_invaders={}, ars_nouveau_invaders={}",
+        LOGGER.info("[ApotheosisExpansion] Config {}: affixes={}, sockets={}, rarity=[{}, {}], warden_unlock={}, elder_guardian_unlock={}, respawn_health_fix={}, gem_tweaks={} x{}, thermal_invaders={}, mekanism_invaders={}, ars_nouveau_invaders={}",
             phase, Config.enableAffixes(), Config.enableSockets(), Config.minRarity(), Config.maxRarity(),
-            Config.enableWardenUnlock(), Config.enableElderGuardianUnlock(),
+            Config.enableWardenUnlock(), Config.enableElderGuardianUnlock(), Config.enableRespawnHealthFix(),
             Config.enableGemTweaks(), Config.gemDropChanceMultiplier(), Config.enableThermalInvaders(), Config.enableMekanismInvaders(), Config.enableArsNouveauInvaders());
+        LOGGER.info("[ApotheosisExpansion] Named-mob peaceful protection: {}",
+            Config.enableNamedPeacefulProtection());
+        LOGGER.info("[ApotheosisExpansion] Multiplayer monster cap: {} (all tiers: {}, bonus {} per extra player, ceiling {} players)",
+            Config.enableMobCapScaling(), Config.mobCapCountAllTiers(),
+            Config.mobCapBonusPerPlayer(), Config.mobCapMaxPlayers());
         LOGGER.info("[ApotheosisExpansion] Per-entity invader switches: {}",
             Config.invaderEntityIds().stream().filter(Config::isEntityInvaderEnabled).sorted().toList());
+
+        // Applied on load AND on reload. Doing it only on reload left debug_mob_cap= true in the file doing nothing
+        // until the user happened to change something, which is exactly the "my setting is ignored" report this is
+        // meant to avoid.
+        com.tamamo.apotheosisexpansion.spawn.MobCapScaler.setDebug(Config.debugMobCap());
+        com.tamamo.apotheosisexpansion.spawn.MobCapScaler.clearCache();
 
         // The gem tweaks bake their values into Apotheosis' live objects, so a config change alone does nothing.
         // Re-running them here is what makes the toggle and the multiplier hot-reloadable.

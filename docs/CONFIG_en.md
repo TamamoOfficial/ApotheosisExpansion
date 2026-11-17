@@ -8,8 +8,8 @@
 
 ## Config file
 
-Located at `config/apotheosis_expansion-common.toml`: **4 sections, 37 entries**
-(22 literal values + 15 per-entity switches, the latter only registered when their mod is present).
+Located at `config/apotheosis_expansion-common.toml`: **5 sections, 46 entries**
+(31 literal values + 15 per-entity switches, the latter only registered when their mod is present).
 
 ---
 
@@ -66,6 +66,15 @@ sub-section's values are gone.
 | `rarity` | `respect_world_tier` | Also clamp the cap to the world tier |
 | `spawner` | `enable_warden_unlock` | Allow Warden eggs in spawners |
 | `spawner` | `enable_elder_guardian_unlock` | Allow Elder Guardian eggs in spawners |
+| `player` | `enable_respawn_health_fix` | Respawn at the real maximum health |
+| `player` | `enable_mob_cap_scaling` | Scale the monster cap by same-tier player count |
+| `player` | `mob_cap_count_all_tiers` | Count every nearby player, ignore tier (default off) |
+| `player` | `mob_cap_bonus_per_player` | Multiplier per extra player (default 0.5) |
+| `player` | `mob_cap_max_players` | Player-count ceiling for the bonus |
+| `player` | `sync_mob_cap_to_hud` | Push the scaled cap to MiniHUD / Servux (cold switch) |
+| `player` | `fake_players_inherit_world_tier` | Fake players inherit their summoner's world tier |
+| `player` | `debug_mob_cap` | Log the cap multiplier calculation (diagnostics) |
+| `adventure` | `enable_named_peaceful_protection` | Mobs tagged `apotheosis_expansion.named` survive Peaceful |
 | `gems` | `enable_gem_tweaks` | Master switch for gem drop tuning |
 | `gems` | `gem_drop_chance_multiplier` | Global chance multiplier |
 | `gems` | `gem_weight_multipliers` | List of `"id=multiplier"` |
@@ -94,14 +103,44 @@ sub-section's values are gone.
 
 ## Reloading
 
-| Change | Requires |
-|---|---|
-| Crafting / spawn eggs / gem multipliers | Takes effect immediately in the config screen |
-| Any invader switch | **Data reload** (`F3+T` or rejoin the world) |
-| Adding/removing data files | Same as above |
+Two different things are involved:
 
-Invader switches feed **data-pack conditions**, which are only evaluated on a data reload — a config
-reload is not enough.
+- **The mod's TOML config**: NeoForge's `ConfigTracker` watches the file, so **saving it is enough**. No `/reload`,
+  no restart.
+- **Data packs**: `/reload` (or `F3+T` on the client) reloads resource and data packs. It has **nothing to do** with
+  the TOML.
+
+### By feature
+
+| Feature | Requires | Why |
+|---|---|---|
+| Crafted gear (affixes / sockets / rarity / repair-combine) | **Save only** | Config is read live inside the event handler |
+| Spawn egg unlocks (Warden / Elder Guardian) | **Save only** | Read live on interaction |
+| Respawn health / named-mob peaceful protection | **Save only** | Read live inside the event handler |
+| Monster cap (scaling / tier mode / bonus / ceiling) | **Save only** | Read on every spawn check; the memo key carries a generation counter |
+| HUD sync / debug logging | **Save only** | Read live on each call |
+| Gem drop multipliers | **Save only** | Rebuilt automatically on config and data-pack reload |
+| **Any invader switch** (including the 15 per-entity ones) | **Data reload** | They feed data-pack conditions, evaluated once at parse time |
+| Fake player tier inheritance | **Save only, but re-spawn the fake** | Decided when the fake joins |
+| Adding/removing data files | **Data reload** | Data-pack content is only re-parsed on reload |
+
+### Why the invader switches are the exception
+
+They live in the TOML yet still need a data reload: each is an `ICondition` deciding whether a given invader JSON
+entry is registered at all. Once the data pack has been parsed the registry is fixed, and flipping a switch does not
+retract entries that are already registered - the pack has to be parsed again.
+
+### Where the "no restart" guarantee comes from
+
+Three constraints, all of which must hold:
+
+| Constraint | If broken |
+|---|---|
+| Options are **not** marked `worldRestart` / `gameRestart` | NeoForge keeps the old cached value until a restart |
+| Every use reads `Config.xxx()`; nothing is copied into a static field | The value freezes at class-init time |
+| Cached data (e.g. the cap multiplier) is dropped on config change, and its key carries a **generation counter** | A stale value can still be hit within the same tick |
+
+`build/test_hot_reload.js` statically checks the first two and the generation counter.
 
 ---
 
