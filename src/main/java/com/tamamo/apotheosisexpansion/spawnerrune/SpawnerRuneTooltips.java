@@ -23,7 +23,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.Level;
@@ -106,7 +105,6 @@ public final class SpawnerRuneTooltips {
         }
 
         List<StatModifier<?>> changes = changesFor(stack, level);
-
         if (changes.isEmpty()) {
             return;
         }
@@ -159,7 +157,10 @@ public final class SpawnerRuneTooltips {
             SpawnerModifier modifier = holder.value();
 
             // Off-hand variants are the inverse recipes; the plain rune is the form a player applies alone.
-            if (modifier.getOffhandInput() != Ingredient.EMPTY) {
+            //
+            // isEmpty() rather than `!= Ingredient.EMPTY`: the codec builds a fresh Ingredient for a missing field, so
+            // an identity comparison against the EMPTY singleton can fail and would silently skip every recipe.
+            if (!modifier.getOffhandInput().isEmpty()) {
                 continue;
             }
 

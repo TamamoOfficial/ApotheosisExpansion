@@ -331,7 +331,8 @@ public final class Config {
         // ---- rune tooltips: the sub-section only exists when Apothic Spawners is installed, because the whole
         // feature is derived from that mod's spawner_modifier recipes.
         if (isModLoaded("apothic_spawners")) {
-            b.comment(
+            ENABLE_SPAWNER_RUNE_TOOLTIPS = b
+                .comment(
                 "Shows what a spawner rune actually changes, inside the rune's own tooltip.",
                 "在符文自己的 tooltip 里显示它实际改动了哪些数值。",
                 "",

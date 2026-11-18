@@ -253,6 +253,19 @@ console.log('\n4) values come from the recipe, not from a hard-coded table');
 console.log('\n5) the feature is switchable');
 {
   ok(cfg.includes('"enable_spawner_rune_tooltips"'), 'the option exists');
+
+  // The define() result MUST be assigned to the field. A bare b.comment(...).define(...) still registers the entry -
+  // the TOML gets written, the config screen shows a working toggle - but the field stays null, so the accessor
+  // returns false forever and the feature silently never runs. That exact mistake shipped once.
+  ok(/ENABLE_SPAWNER_RUNE_TOOLTIPS\s*=\s*b\s*\n?\s*\.comment\(/.test(cfg),
+    'the define() result is assigned to ENABLE_SPAWNER_RUNE_TOOLTIPS');
+  const defineBlock = cfg.slice(cfg.indexOf('if (isModLoaded("apothic_spawners"))'));
+  ok(/ENABLE_SPAWNER_RUNE_TOOLTIPS\s*=\s*b/.test(defineBlock.slice(0, 400)),
+    'the assignment sits inside the mod-gated block, right at its start');
+  // Guard against the field being written but the accessor reading a different one.
+  ok(/return ENABLE_SPAWNER_RUNE_TOOLTIPS != null && ENABLE_SPAWNER_RUNE_TOOLTIPS\.get\(\)/.test(cfg),
+    'the accessor reads the same field that define() populates');
+
   ok(/isModLoaded\("apothic_spawners"\)/.test(cfg),
     'the sub-section is only registered when the mod is present');
   ok(/ENABLE_SPAWNER_RUNE_TOOLTIPS\s*(!=|==)\s*null/.test(cfg),
