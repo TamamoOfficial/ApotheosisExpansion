@@ -122,8 +122,15 @@
     "apotheosis_expansion.configuration.spawner": "刷怪笼",
     "apotheosis_expansion.configuration.spawner.enable_elder_guardian_unlock": "允许远古守卫者刷怪蛋用于刷怪笼",
     "apotheosis_expansion.configuration.spawner.enable_elder_guardian_unlock.tooltip": "仅解除神化对远古守卫者刷怪蛋的限制，其它黑名单生物仍然保持禁用。",
+    "apotheosis_expansion.configuration.spawner.enable_spawner_rune_tooltips": "显示刷怪笼符文的数值改动",
+    "apotheosis_expansion.configuration.spawner.enable_spawner_rune_tooltips.tooltip": "神化只用一句模糊描述介绍符文，具体数值要打开 JEI/EMI 的用途页才看得到。开启后，tooltip 会直接列出从当前数据包读取到的数值改动，因此改过数值的数据包或自带符文的模组也能正确显示。仅客户端生效，可热更新。",
     "apotheosis_expansion.configuration.spawner.enable_warden_unlock": "允许监守者刷怪蛋用于刷怪笼",
     "apotheosis_expansion.configuration.spawner.enable_warden_unlock.tooltip": "仅解除神化对监守者刷怪蛋的限制，其它黑名单生物仍然保持禁用。",
     "apotheosis_expansion.configuration.spawner.tooltip": "神化对刷怪笼的限制。",
-    "apotheosis_expansion.configuration.title": "神化扩展 设置"
+    "apotheosis_expansion.configuration.title": "神化扩展 设置",
+    "apotheosis_expansion.spawner_rune.disables": "禁用：%s",
+    "apotheosis_expansion.spawner_rune.enables": "启用：%s",
+    "apotheosis_expansion.spawner_rune.max": "（上限 %s）",
+    "apotheosis_expansion.spawner_rune.min": "（下限 %s）",
+    "apotheosis_expansion.spawner_rune.set": "%s：%s"
 }

@@ -122,8 +122,15 @@
     "apotheosis_expansion.configuration.spawner": "Spawner",
     "apotheosis_expansion.configuration.spawner.enable_elder_guardian_unlock": "Allow Elder Guardian Spawn Egg on Spawners",
     "apotheosis_expansion.configuration.spawner.enable_elder_guardian_unlock.tooltip": "Undo Apotheosis' refusal for the Elder Guardian egg only. Other blacklisted mobs stay refused.",
+    "apotheosis_expansion.configuration.spawner.enable_spawner_rune_tooltips": "Show Spawner Rune Stat Changes",
+    "apotheosis_expansion.configuration.spawner.enable_spawner_rune_tooltips.tooltip": "Apotheosis describes a rune with one vague line and leaves the numbers to its JEI/EMI uses page. When enabled, the tooltip lists the stat changes read from the loaded data pack, so edited or modded runes display correctly. Client-side only; hot-reloadable.",
     "apotheosis_expansion.configuration.spawner.enable_warden_unlock": "Allow Warden Spawn Egg on Spawners",
     "apotheosis_expansion.configuration.spawner.enable_warden_unlock.tooltip": "Undo Apotheosis' refusal for the Warden egg only. Other blacklisted mobs stay refused.",
     "apotheosis_expansion.configuration.spawner.tooltip": "Apotheosis spawner restrictions.",
-    "apotheosis_expansion.configuration.title": "Apotheosis Expansion Settings"
+    "apotheosis_expansion.configuration.title": "Apotheosis Expansion Settings",
+    "apotheosis_expansion.spawner_rune.disables": "Disables %s",
+    "apotheosis_expansion.spawner_rune.enables": "Enables %s",
+    "apotheosis_expansion.spawner_rune.max": "(max %s)",
+    "apotheosis_expansion.spawner_rune.min": "(min %s)",
+    "apotheosis_expansion.spawner_rune.set": "%s: %s"
 }

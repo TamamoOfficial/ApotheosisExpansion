@@ -81,6 +81,12 @@ public final class Config {
     public static final BooleanValue ENABLE_WARDEN_UNLOCK;
     public static final BooleanValue ENABLE_ELDER_GUARDIAN_UNLOCK;
 
+    /**
+     * Not {@code final}: the {@code [spawner/runes]} sub-section is only registered when Apothic Spawners is installed,
+     * so on a pack without it this stays null and {@link #enableSpawnerRuneTooltips()} reports false.
+     */
+    public static BooleanValue ENABLE_SPAWNER_RUNE_TOOLTIPS;
+
     // ==== [player] =========================================================
 
     public static final BooleanValue ENABLE_RESPAWN_HEALTH_FIX;
@@ -321,6 +327,34 @@ public final class Config {
                 "与 enable_warden_unlock 相互独立，可以只开其中一个。")
             .translation(KEY + "spawner.enable_elder_guardian_unlock")
             .define("enable_elder_guardian_unlock", true);
+
+        // ---- rune tooltips: the sub-section only exists when Apothic Spawners is installed, because the whole
+        // feature is derived from that mod's spawner_modifier recipes.
+        if (isModLoaded("apothic_spawners")) {
+            b.comment(
+                "Shows what a spawner rune actually changes, inside the rune's own tooltip.",
+                "在符文自己的 tooltip 里显示它实际改动了哪些数值。",
+                "",
+                "Apotheosis describes its runes with one vague line ('Slightly improves a Mob Spawner') and",
+                "神化只用一句模糊的描述（「略微提升刷怪笼的性能」），",
+                "leaves the numbers to the JEI/EMI recipe page, where they can only be found by opening the",
+                "具体数值放在 JEI/EMI 的用途页里，必须打开用途界面、",
+                "rune's uses page and hovering each line. This adds them to the tooltip directly.",
+                "再逐条悬停才能看到。本项把这些数值直接写进 tooltip。",
+                "",
+                "The values are read from the loaded data pack's apothic_spawners:spawner_modifier recipes on",
+                "数值直接读取当前数据包里的 apothic_spawners:spawner_modifier 配方，",
+                "the fly, so a data pack that changes the numbers, or a mod that ships its own runes, is",
+                "因此修改了数值的数据包、或自带符文的模组，",
+                "described correctly with no code change here.",
+                "无需改动本模组代码即可正确显示。",
+                "",
+                "Client-side only; the server does not need this setting. Hot-reloadable.",
+                "仅客户端生效，服务端不需要该设置。可热更新。")
+                .translation(KEY + "spawner.enable_spawner_rune_tooltips")
+                .define("enable_spawner_rune_tooltips", true);
+        }
+
         b.pop(); // spawner
 
         // ---------------------------------------------------------------- player
@@ -998,6 +1032,16 @@ public final class Config {
 
     public static boolean enableElderGuardianUnlock() {
         return ENABLE_ELDER_GUARDIAN_UNLOCK.get();
+    }
+
+    /**
+     * Whether spawner runes describe their stat changes in their tooltip.
+     * <p>
+     * Null when Apothic Spawners is absent: its sub-section was never registered, so the feature is off rather than
+     * crashing on a null config value.
+     */
+    public static boolean enableSpawnerRuneTooltips() {
+        return ENABLE_SPAWNER_RUNE_TOOLTIPS != null && ENABLE_SPAWNER_RUNE_TOOLTIPS.get();
     }
 
     public static boolean enableRespawnHealthFix() {

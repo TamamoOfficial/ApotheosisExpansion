@@ -26,6 +26,7 @@
 | **合并修复修复** | 修复铁砧合并时词条被重掷的 bug |
 | **宝石掉落调整** | 按倍率缩放宝石掉率与权重 |
 | **多人共享刷怪额度** | 同处一个刷怪平台的玩家共同抬高怪物上限，可选是否跨层级计数 |
+| **刷怪笼符文数值** | 在符文 tooltip 里直接列出它改动的数值，数值取自当前数据包 |
 
 ### 玩家行为修复
 
@@ -86,7 +87,7 @@
 
 ## 配置
 
-配置文件 `config/apotheosis_expansion-common.toml`，共 5 个段、46 个配置项。
+配置文件 `config/apotheosis_expansion-common.toml`，共 5 个段、47 个配置项。
 游戏内界面按**模组分组**，未安装的模组不会出现空开关。
 
 完整键表见 **[配置与构建](docs/CONFIG.md)**。
@@ -103,7 +104,7 @@
 ./gradlew build
 ```
 
-产物：`build/libs/ApotheosisExpansion-1.21.1-neoforge-1.0.0.jar`
+产物：`build/libs/ApotheosisExpansion-1.21.1-neoforge-1.1.0.jar`
 
 依赖由 Gradle 自动从 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/) 下载，
 **克隆后无需手动准备任何 jar**。开发机的 Gradle 因 `native-platform.dll` 无法启动，实际用 `javac` 直接编译，

@@ -80,6 +80,13 @@ public class ApotheosisExpansion {
         // generic ConfigurationScreen for its own container.
         if (FMLEnvironment.dist.isClient()) {
             ClientIntegration.registerConfigScreen(container);
+
+            // Spawner rune tooltips need a recipe manager and a tooltip renderer, so they are client-only. The shared
+            // half (cache invalidation on data pack sync) is registered by SpawnerRuneIntegration, whose class holds no
+            // Apothic Spawners types and therefore stays safe when that mod is absent.
+            if (com.tamamo.apotheosisexpansion.spawnerrune.SpawnerRuneIntegration.isAvailable()) {
+                ClientIntegration.registerSpawnerRuneTooltips();
+            }
         }
 
         modBus.addListener(this::onConfigChanged);

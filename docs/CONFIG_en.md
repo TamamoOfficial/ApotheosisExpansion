@@ -8,8 +8,8 @@
 
 ## Config file
 
-Located at `config/apotheosis_expansion-common.toml`: **5 sections, 46 entries**
-(31 literal values + 15 per-entity switches, the latter only registered when their mod is present).
+Located at `config/apotheosis_expansion-common.toml`: **5 sections, 47 entries**
+(31 literal values + 16 per-entity switches, the latter only registered when their mod is present).
 
 ---
 
@@ -66,6 +66,7 @@ sub-section's values are gone.
 | `rarity` | `respect_world_tier` | Also clamp the cap to the world tier |
 | `spawner` | `enable_warden_unlock` | Allow Warden eggs in spawners |
 | `spawner` | `enable_elder_guardian_unlock` | Allow Elder Guardian eggs in spawners |
+| `spawner` | `enable_spawner_rune_tooltips` | List what a spawner rune changes in its tooltip (needs Apothic Spawners; client-side) |
 | `player` | `enable_respawn_health_fix` | Respawn at the real maximum health |
 | `player` | `enable_mob_cap_scaling` | Scale the monster cap by same-tier player count |
 | `player` | `mob_cap_count_all_tiers` | Count every nearby player, ignore tier (default off) |
@@ -152,7 +153,7 @@ Three constraints, all of which must hold:
 ./gradlew build
 ```
 
-Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.0.0.jar`
+Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.1.0.jar`
 
 **Dependencies**: Apotheosis / Placebo / Apothic Attributes resolve from
 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/):
@@ -179,7 +180,14 @@ javac -encoding UTF-8 -proc:none --release 21 -sourcepath <empty-dir> -classpath
 recompiles classes from the classpath jars into the output directory — in practice this pulled 1081
 NeoForge classes into the output.
 
-Packaging:
+Both steps are scripted:
+
+```bash
+node build/compile.js     # compile into build/classes (finds JDK 21, assembles the classpath)
+node build/package.js     # package into build/libs/
+```
+
+Packaging is equivalent to the manual form:
 
 ```bash
 jar --create --file <target>.jar --manifest <manifest> -C <staging-dir> .
@@ -187,13 +195,15 @@ jar --create --file <target>.jar --manifest <manifest> -C <staging-dir> .
 
 ### Validation scripts
 
-`build/` holds 10 static check scripts covering data validity, mixin targets, condition codecs, the
-filter predicate and README links:
+The static check scripts in `build/` cover data validity, mixin targets, condition codecs, the filter
+predicate, the spawner-rune tooltips and README links:
 
 ```bash
 node build/validate_invaders.js thermal
 node build/verify_mixin.js
 node build/test_filter_predicate.js
+node build/verify_spawner_rune_tooltips.js
+node build/test_spawner_rune_tooltips.js
 node build/verify_readme.js
 # ...
 ```
@@ -226,10 +236,13 @@ src/main/java/com/tamamo/apotheosisexpansion/
 │   ├── AbstractContainerMenuMixin.java Crafted-gear injection
 │   ├── BossSpawnerTileMixin.java       Excludes our entries from spawner draws
 │   └── CreativeTargetFilter.java       Bosses ignore creative/spectator
-└── gems/
-    ├── GemWeightTweaker.java       Patches Gem.weights by reflection
-    ├── GemChanceTweaker.java       Patches GemLootModifier.entries by reflection
-    └── GemTweakApplier.java        Schedules both on data sync / config reload
+├── gems/
+│   ├── GemWeightTweaker.java       Patches Gem.weights by reflection
+│   ├── GemChanceTweaker.java       Patches GemLootModifier.entries by reflection
+│   └── GemTweakApplier.java        Schedules both on data sync / config reload
+└── spawnerrune/
+    ├── SpawnerRuneIntegration.java Optional-dependency ModList gate (holds no such types)
+    └── SpawnerRuneTooltips.java    Reads spawner_modifier recipes to build the tooltip lines
 ```
 
 Data pack folders:

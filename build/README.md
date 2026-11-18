@@ -1,6 +1,6 @@
 # 校验脚本说明
 
-`build/` 下的脚本分两类，用途不同。
+`build/` 下的脚本分三类，用途不同。
 
 ## 一类：校验脚本（可移植，随仓库分发）
 
@@ -24,6 +24,8 @@ node build/verify_readme.js
 | `verify_vanilla_bosses.js` | 原版三大 BOSS 的设定与风险点 |
 | `verify_piglich_gear.js` | 猪巫妖装备钩子的顺序与概率 |
 | `test_filter_predicate.js` | 刷怪笼过滤器的白名单行为 |
+| `verify_spawner_rune_tooltips.js` | 符文 tooltip：Apothic Spawners API 是否还在、配方是否仍五项全设、可选依赖隔离、缓存失效接线 |
+| `test_spawner_rune_tooltips.js` | 符文 tooltip 的格式化行为表（用真实配方驱动：set/布尔/add/上下限/反向配方跳过） |
 | `parity_check.js` | 数据字段与上游 codec 的对应 |
 | `check_baby_derivation.js` | 宝宝权重是否为成年体的 1/3 |
 | `verify_readme.js` | 文档链接、锚点、中英配对、配置键覆盖 |
@@ -35,6 +37,20 @@ node build/verify_readme.js
 `gen_*.js` 当初用于从上游解包的参考数据批量生成 JSON。它们依赖 `APOTH_REF_DIR`
 指向的 dance 目录，正常情况下不需要再运行——数据文件已在仓库里。保留是为了让参数
 （权重、稀有度曲线）可追溯，而不是让人重跑。
+
+---
+
+## 三类：本机构建脚本（Gradle 起不来时用）
+
+本机 Gradle 因 `native-platform.dll` 无法启动，所以编译与打包也做成了脚本：
+
+```bash
+node build/compile.js     # 编译 src/main/java -> build/classes
+node build/package.js     # 打包 build/classes + 资源 -> build/libs/
+```
+
+`compile.js` 会自动找 JDK 21 的 `javac`、从 `build/cp.txt` 与 `libs/*.jar` 拼 classpath，
+并强制 `-sourcepath` 指向空目录（否则 javac 会把 jar 里的类反编译重编到输出目录）。
 
 ---
 
@@ -50,6 +66,7 @@ node build/verify_readme.js
 | `MC_SOURCES_JAR` | NeoForge 的 `neoforge-*-sources.jar` | 少数检查原版行为的脚本 |
 | `MC_JAR` | NeoForge 的 `neoforge-*-merged.jar` | `verify_mob_cap.js`（要反汇编原版字节码） |
 | `JAVAP` | `javap` 可执行文件路径 | 依赖字节码的脚本 |
+| `APOTHIC_SPAWNERS_JAR` | Apothic Spawners 的 jar | `verify_spawner_rune_tooltips.js`（默认取 `libs/`） |
 
 **依赖 jar 从哪里来**：脚本按以下顺序查找，通常不需要设置任何变量：
 

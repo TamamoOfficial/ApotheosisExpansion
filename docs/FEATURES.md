@@ -21,6 +21,8 @@
 - [九、原版三大 BOSS](#九原版三大-boss)
 - [十、Bug 修复：BOSS 不锁定创造/旁观玩家](#十bug-修复boss-不锁定创造旁观玩家)
 - [十一、与神化刷怪笼的关系](#十一与神化刷怪笼的关系)
+- [十二、多人共享刷怪额度](#十二多人共享刷怪额度)
+- [十三、刷怪笼符文的-tooltip](#十三刷怪笼符文的-tooltip)
 
 ---
 
@@ -603,3 +605,88 @@ return loader.getResource(resource) != null;
 
 **假人层级是个例外**：`fake_players_inherit_world_tier` 的判定发生在假人**进服那一刻**，
 所以改开关后需要**重新召唤假人**才生效——这不是缓存问题，是事件本身只有一次。
+
+---
+
+## 十三、刷怪笼符文的 tooltip
+
+当前版本的神化把刷怪笼的强化手段从「用一堆材料去操作调节器」换成了**符文**：每枚升级符文
+（拓荒者 / 旅人 / 登山者 / 雷霆）本质上是一张把刷怪笼五项数值直接**设**为某个值的配方。
+问题是物品本身只写了一句话——「略微提升刷怪笼的性能」——真正的数值藏在 JEI/EMI 的**用途页**里，
+而且必须点进去、逐条悬停才看得清。
+
+### 数值从哪来
+
+**不写死，直接读配方。** 每一枚符文对应一条 `apothic_spawners:spawner_modifier` 配方：
+
+```json
+{
+  "type": "apothic_spawners:spawner_modifier",
+  "mainhand": { "item": "apotheosis:frontier_spawner_upgrade_rune" },
+  "stat_changes": [
+    { "type": "apothic_spawners:min_delay",           "mode": "set", "value": 150 },
+    { "type": "apothic_spawners:max_delay",           "mode": "set", "value": 600 },
+    { "type": "apothic_spawners:spawn_count",         "mode": "set", "value": 7   },
+    { "type": "apothic_spawners:max_nearby_entities", "mode": "set", "value": 12  },
+    { "type": "apothic_spawners:req_player_range",    "mode": "set", "value": 24  }
+  ]
+}
+```
+
+客户端本来就从服务端同步了这份配方表（JEI 用它渲染用途页），所以 tooltip 直接向
+`RecipeManager.getAllRecipesFor(...)` 询问「主手是这枚符文的配方有哪些」，再把
+`StatModifier` 列表解码出来。**因此改数据包就改显示**：整合包调过数值、或者别的模组
+自带符文，都无需改动本模组一行代码。
+
+这也是为什么工具提示的值**不会**过时——它每次绘制时读的都是当前生效的配方。
+
+### 三种数值的显示方式
+
+| 配方写法 | tooltip |
+|---|---|
+| `"mode": "set"`, 数值 | `最小生成延迟：150`（绿色） |
+| `"mode": "set"`, 布尔 | `启用：无视光照` / `禁用：无视光照` |
+| 默认 `add` 模式 | `+2 生成范围（上限 32）` |
+
+名称与单位（刻、百分比、等级用罗马数字）都复用 Apothic Spawners 自己的 `SpawnerStat#name()`
+与 `#formatValue()`，所以翻译和格式化规则只有一份。
+
+**上限/下限也会显示**，因为它是真实行为的一部分：生成范围符文每次 +2、最多到 32，
+若只写「+2」会让人以为能无限叠加。`echoing` 的 `max: 3` 同理。
+
+### 只显示「主手单独使用」的那条
+
+同一个符文可能有多条配方：本体给的、以及 `spawner_modifiers/_inverse/` 里那条
+「主手符文 + 副手石英 = 把效果关掉」的反向配方。只描述**副手为空**的那条，
+否则 tooltip 会自相矛盾（既说开启又说关闭）。
+
+### 缓存与重载
+
+tooltip 每帧都会重新收集，所以扫描结果按**物品**记忆化。缓存在两个时机清空：
+
+| 事件 | 为什么需要 |
+|---|---|
+| `RecipesUpdatedEvent` | 客户端收到新配方表（进服、`/reload`）时，旧扫描结果立刻失效 |
+| `OnDatapackSyncEvent` | 数据包重载完成；整合端时客户端缓存需要同步丢弃 |
+
+配置开关本身**不需要**清缓存——每次绘制都读 `Config.enableSpawnerRuneTooltips()`，可直接热更新。
+
+### 可选依赖的隔离
+
+Apothic Spawners 是可选依赖。任何提到 `dev.shadowsoffire.apothic_spawners` 的类在链接时就会
+抛 `NoClassDefFoundError`，所以所有相关引用都被关进 `spawnerrune/SpawnerRuneTooltips.java`，
+而 `spawnerrune/SpawnerRuneIntegration.java`（不含任何该模组的类型）负责先查 `ModList`：
+
+```java
+if (FMLEnvironment.dist.isClient() && SpawnerRuneIntegration.isAvailable()) {
+    ClientIntegration.registerSpawnerRuneTooltips();
+}
+```
+
+客户端专属的 `RecipesUpdatedEvent` 因此只能注册在 `ClientIntegration` 里，不能写在公共路径上
+——否则专用服务器会去解析一个客户端事件类。
+
+未装 Apothic Spawners 时：`[spawner]` 下不会出现这个配置项，功能整体不存在，也没有报错。
+
+`build/verify_spawner_rune_tooltips.js` 静态守住这些约定：API 是否还在、四枚升级符文是否仍是
+五项全设、`spawnerrune/` 之外是否出现该模组的类型引用、以及缓存失效是否真的接在事件上。

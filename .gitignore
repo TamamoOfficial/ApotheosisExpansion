@@ -12,6 +12,7 @@ build/checkclasses/
 build/moddev/
 build/tmp/
 build/resources/
+build/MANIFEST.MF
 
 # IDE
 .idea/

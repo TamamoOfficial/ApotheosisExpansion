@@ -22,6 +22,8 @@ For a quick overview of what the mod does, see the [README](../README_en.md).
 - [9. Vanilla bosses](#9-vanilla-bosses)
 - [10. Fix: bosses no longer target creative/spectator players](#10-fix-bosses-no-longer-target-creativespectator-players)
 - [11. Interaction with Apotheosis boss spawners](#11-interaction-with-apotheosis-boss-spawners)
+- [12. Shared monster budget for grouped players](#12-shared-monster-budget-for-grouped-players)
+- [13. Spawner rune tooltips](#13-spawner-rune-tooltips)
 
 ---
 
@@ -636,3 +638,93 @@ carries a generation counter which `clearCache` increments.
 **Fake player tiers are the one exception**: `fake_players_inherit_world_tier` is evaluated when a fake
 **joins**, so flipping the switch needs a **re-spawn** of that fake - not a caching problem, the event
 simply only happens once.
+
+---
+
+## 13. Spawner rune tooltips
+
+Current Apotheosis replaced "feed a pile of items to the spawner" with **runes**: each upgrade rune
+(Frontier / Ascent / Summit / Pinnacle) is really a recipe that *sets* five spawner stats to fixed values.
+The item itself only says one line - "Slightly improves a Mob Spawner" - and the numbers live in the
+JEI/EMI **uses** page, where they only appear after opening that page and hovering each line.
+
+### Where the numbers come from
+
+**Nothing is hard-coded; the recipes are read.** Each rune is one `apothic_spawners:spawner_modifier` recipe:
+
+```json
+{
+  "type": "apothic_spawners:spawner_modifier",
+  "mainhand": { "item": "apotheosis:frontier_spawner_upgrade_rune" },
+  "stat_changes": [
+    { "type": "apothic_spawners:min_delay",           "mode": "set", "value": 150 },
+    { "type": "apothic_spawners:max_delay",           "mode": "set", "value": 600 },
+    { "type": "apothic_spawners:spawn_count",         "mode": "set", "value": 7   },
+    { "type": "apothic_spawners:max_nearby_entities", "mode": "set", "value": 12  },
+    { "type": "apothic_spawners:req_player_range",    "mode": "set", "value": 24  }
+  ]
+}
+```
+
+The client already receives that recipe table from the server (it is what JEI renders the uses page from), so
+the tooltip asks `RecipeManager.getAllRecipesFor(...)` for the recipes whose main hand is this rune and decodes
+their `StatModifier` list. **A data pack change therefore changes the display**: a pack that retunes the
+numbers, or another mod that ships its own runes, needs no change here.
+
+That is also why the values cannot go stale - every draw reads the currently active recipes.
+
+### How the three kinds of value are shown
+
+| Recipe form | Tooltip |
+|---|---|
+| `"mode": "set"`, numeric | `Min Spawn Delay: 150` (green) |
+| `"mode": "set"`, boolean | `Enables: Ignore Light` / `Disables: Ignore Light` |
+| default `add` mode | `+2 Spawn Range (max 32)` |
+
+Stat names and value units (ticks, percentages, roman numerals for levels) are reused from Apothic Spawners'
+own `SpawnerStat#name()` and `#formatValue()`, so the translation and the formatting live in exactly one place.
+
+**Bounds are shown too**, because they are part of the real behaviour: the spawn-range rune adds 2 per use and
+stops at 32, so printing only "+2" would suggest it stacks forever. The echoing rune's `max: 3` behaves the
+same way.
+
+### Only the "main hand alone" form is described
+
+The same rune can have several recipes: the shipped one, plus the `spawner_modifiers/_inverse/` entry that puts
+quartz in the off hand and turns the effect back off. Only the recipe with an **empty off hand** is described;
+listing both would make the tooltip contradict itself (on and off at once).
+
+### Caching and reloads
+
+A tooltip is re-gathered every frame, so the scan is memoised per **item**. The memo is dropped at two moments:
+
+| Event | Why it is needed |
+|---|---|
+| `RecipesUpdatedEvent` | the client received a new recipe table (join, `/reload`); the old scan is stale at once |
+| `OnDatapackSyncEvent` | a data pack reload finished; on an integrated server the client memo must be dropped too |
+
+The config switch needs **no** invalidation - every draw reads `Config.enableSpawnerRuneTooltips()`, so it is
+hot-reloadable.
+
+### Optional dependency isolation
+
+Apothic Spawners is optional. Any class that mentions `dev.shadowsoffire.apothic_spawners` throws
+`NoClassDefFoundError` as soon as it is linked, so every such reference is confined to
+`spawnerrune/SpawnerRuneTooltips.java`, while `spawnerrune/SpawnerRuneIntegration.java` (which holds none of that
+mod's types) asks `ModList` first:
+
+```java
+if (FMLEnvironment.dist.isClient() && SpawnerRuneIntegration.isAvailable()) {
+    ClientIntegration.registerSpawnerRuneTooltips();
+}
+```
+
+The client-only `RecipesUpdatedEvent` can therefore only be registered in `ClientIntegration` - registering it
+from common code would make a dedicated server resolve a client event class.
+
+Without Apothic Spawners the option does not appear under `[spawner]`, the feature does not exist, and nothing
+logs an error.
+
+`build/verify_spawner_rune_tooltips.js` guards these invariants statically: the API still exists, the four
+upgrade runes still set all five stats, no Apothic Spawners type appears outside `spawnerrune/`, and the cache
+invalidation really is wired to events.

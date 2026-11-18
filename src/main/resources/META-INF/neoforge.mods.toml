@@ -57,3 +57,13 @@ type="required"
 versionRange="[9.9.2,)"
 ordering="AFTER"
 side="BOTH"
+
+# Optional: the spawner-rune tooltip feature is derived from this mod's spawner_modifier recipe type. Declared as
+# "optional" so a pack that runs Apotheosis without the spawner module still loads - the feature then simply reports
+# itself as unavailable instead of the whole mod being refused.
+[[dependencies.apotheosis_expansion]]
+modId="apothic_spawners"
+type="optional"
+versionRange="[1.4.0,)"
+ordering="AFTER"
+side="BOTH"

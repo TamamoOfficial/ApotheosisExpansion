@@ -27,6 +27,7 @@ Every feature can be toggled independently from the in-game config screen.
 | **Repair-combine fix** | Fixes affixes being re-rolled when combining two items in an anvil |
 | **Gem drop tuning** | Scales gem drop rates and weights by multiplier |
 | **Shared monster budget** | Players sharing a spawn platform raise the monster cap together; optionally across tiers |
+| **Spawner rune stats** | Lists what a rune actually changes in its tooltip, read from the loaded data pack |
 
 ### Player fixes
 
@@ -88,7 +89,7 @@ Drop the jar into `mods/`. Required on both client and server.
 
 ## Configuration
 
-Config file `config/apotheosis_expansion-common.toml`: 5 sections, 46 entries.
+Config file `config/apotheosis_expansion-common.toml`: 5 sections, 47 entries.
 The in-game screen groups switches **by mod**; absent mods produce no empty switches.
 
 Full key reference: [Config & Build](docs/CONFIG_en.md).
@@ -105,7 +106,7 @@ exception is the invader switches, which feed data-pack conditions and need a da
 ./gradlew build
 ```
 
-Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.0.0.jar`
+Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.1.0.jar`
 
 Dependencies are downloaded by Gradle from
 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/), so **a fresh clone

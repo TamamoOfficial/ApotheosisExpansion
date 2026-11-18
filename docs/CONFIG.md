@@ -8,8 +8,8 @@
 
 ## 配置文件
 
-位于 `config/apotheosis_expansion-common.toml`，共 **5 个段、46 个配置项**
-（31 个字面配置 + 15 个按实体开关，后者仅在对应模组安装时注册）。
+位于 `config/apotheosis_expansion-common.toml`，共 **5 个段、47 个配置项**
+（31 个字面配置 + 16 个按模组开关，后者仅在对应模组安装时注册）。
 
 ---
 
@@ -65,6 +65,7 @@
 | `rarity` | `respect_world_tier` | 上限是否再受世界层级约束 |
 | `spawner` | `enable_warden_unlock` | 允许坚守者刷怪蛋进入刷怪笼 |
 | `spawner` | `enable_elder_guardian_unlock` | 允许远古守卫者刷怪蛋进入刷怪笼 |
+| `spawner` | `enable_spawner_rune_tooltips` | 在符文 tooltip 里列出它改动的数值（需装 Apothic Spawners；仅客户端） |
 | `player` | `enable_respawn_health_fix` | 复活时按真实最大生命值回满血 |
 | `player` | `enable_mob_cap_scaling` | 按同层级玩家人数成倍放宽怪物上限 |
 | `player` | `mob_cap_count_all_tiers` | 统计附近全部玩家、忽略层级（默认关） |
@@ -149,7 +150,7 @@
 ./gradlew build
 ```
 
-产物在 `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.0.0.jar`。
+产物在 `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.1.0.jar`。
 
 **依赖说明**：Apotheosis / Placebo / Apothic Attributes 从
 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/) 解析：
@@ -174,7 +175,14 @@ javac -encoding UTF-8 -proc:none --release 21 -sourcepath <空目录> -classpath
 **`-sourcepath <空目录>` 不能省。** 否则 javac 的隐式源码发现会把 classpath 里 jar 的类反编译重编到
 输出目录——实测会混进 1081 个 NeoForge 类。
 
-打包：
+上面两步已经脚本化，直接用：
+
+```bash
+node build/compile.js     # 编译到 build/classes（自动找 JDK 21、拼 classpath）
+node build/package.js     # 打包到 build/libs/
+```
+
+打包这一步等价于手写：
 
 ```bash
 jar --create --file <目标>.jar --manifest <清单> -C <暂存目录> .
@@ -182,12 +190,14 @@ jar --create --file <目标>.jar --manifest <清单> -C <暂存目录> .
 
 ### 校验脚本
 
-`build/` 下有 10 个静态校验脚本，覆盖数据合法性、mixin 目标、条件 codec、过滤器谓词、README 链接等：
+`build/` 下的静态校验脚本覆盖数据合法性、mixin 目标、条件 codec、过滤器谓词、符文 tooltip、README 链接等：
 
 ```bash
 node build/validate_invaders.js thermal
 node build/verify_mixin.js
 node build/test_filter_predicate.js
+node build/verify_spawner_rune_tooltips.js
+node build/test_spawner_rune_tooltips.js
 node build/verify_readme.js
 # ...
 ```
@@ -220,10 +230,13 @@ src/main/java/com/tamamo/apotheosisexpansion/
 │   ├── AbstractContainerMenuMixin.java 制作装备注入
 │   ├── BossSpawnerTileMixin.java       刷怪笼抽 boss 时排除联动条目
 │   └── CreativeTargetFilter.java       BOSS 不锁定创造/旁观玩家
-└── gems/
-    ├── GemWeightTweaker.java       反射改 Gem.weights
-    ├── GemChanceTweaker.java       反射改 GemLootModifier.entries
-    └── GemTweakApplier.java        数据包同步 / 配置重载时调度
+├── gems/
+│   ├── GemWeightTweaker.java       反射改 Gem.weights
+│   ├── GemChanceTweaker.java       反射改 GemLootModifier.entries
+│   └── GemTweakApplier.java        数据包同步 / 配置重载时调度
+└── spawnerrune/
+    ├── SpawnerRuneIntegration.java 可选依赖的 ModList 闸门（不含该模组类型）
+    └── SpawnerRuneTooltips.java    读 spawner_modifier 配方生成 tooltip 行
 ```
 
 数据包目录：
