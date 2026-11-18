@@ -110,3 +110,33 @@ Two new validators; all 15 static checks pass:
 node build/verify_spawner_rune_tooltips.js   # API surface, recipe structure, dependency isolation, cache invalidation
 node build/test_spawner_rune_tooltips.js     # formatter behaviour table driven by the real recipes
 ```
+
+---
+
+## 修复（v1.1.0 重新发布）
+
+首版 v1.1.0 的符文 tooltip 不生效：`Config` 中 `define()` 的返回值未赋给对应字段，
+导致开关恒为 `false`。已修复，并在实机确认：
+
+| 符文 | 匹配到的数值条数 |
+|---|---|
+| 拓荒者 / 旅人 / 登山者 / 雷霆（升级符文） | 5 |
+| 焚祭 / 回响 / 光辉 / 抗性 / 虚弱 等单效果符文 | 1 |
+| 刷怪笼符文 / 灌注刷怪笼符文（基础符文，本身不改数值） | 0 |
+
+同时修正副手判断（改为 `isEmpty()`），避免 codec 对缺失 `offhand` 字段新建实例、
+引用比较误判而跳过全部配方。
+
+## Fix (v1.1.0 republished)
+
+The first v1.1.0 build did not work: the `define()` return value was never assigned to the
+backing field in `Config`, so the switch read `false` forever. Fixed and verified in-game:
+
+| Rune | Stat changes matched |
+|---|---|
+| Frontier / Ascent / Summit / Pinnacle (upgrade runes) | 5 |
+| Burning / Echoing / Ignore Light / ... (single-effect runes) | 1 |
+| Spawner Rune / Infused Spawner Rune (base runes, no stats) | 0 |
+
+The off-hand check was also corrected to use `isEmpty()`, since the codec creates a fresh
+instance for a missing `offhand` field and an identity comparison could skip every recipe.

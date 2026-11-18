@@ -68,6 +68,13 @@ public final class SpawnerRuneTooltips {
      */
     private static final Map<Item, List<StatModifier<?>>> CACHE = new HashMap<>();
 
+    /** The recipe table {@link #cachedModifiers} was read from; a reload replaces this instance. */
+    @Nullable
+    private static RecipeManager cachedRecipeManager;
+
+    /** The spawner modifier recipes of {@link #cachedRecipeManager}. */
+    private static List<RecipeHolder<SpawnerModifier>> cachedModifiers = List.of();
+
     /**
      * Bumped by {@link #invalidate()} so a test can assert the wiring is in place. The value is never consulted when
      * reading the cache: {@code CACHE.clear()} already makes every old entry unreachable, and unlike a per-chunk memo
@@ -82,6 +89,11 @@ public final class SpawnerRuneTooltips {
     public static void invalidate() {
         generations++;
         CACHE.clear();
+
+        // The candidate list is keyed on the recipe manager, so once the table is replaced it re-reads by itself - but
+        // clearing it here keeps the two memos in step and frees the old list immediately.
+        cachedRecipeManager = null;
+        cachedModifiers = List.of();
     }
 
     /** Only for the validator: proves {@link #invalidate()} was actually wired to an event. */
@@ -136,19 +148,47 @@ public final class SpawnerRuneTooltips {
         return changes;
     }
 
+    /**
+     * The spawner modifier recipes of the current recipe set, read once per recipe table.
+     *
+     * <h2>Why this is memoised separately</h2>
+     * {@code getAllRecipesFor} returns {@code List.copyOf(...)}, i.e. it copies the whole list on every call. A recipe
+     * viewer indexes the entire item registry on its baking thread, so without this the copy ran thousands of times per
+     * launch for a result that cannot change between reloads.
+     * <p>
+     * The memo is keyed on the {@link RecipeManager} instance: a reload replaces the manager, which is exactly when the
+     * candidate list goes stale. {@link #invalidate()} also clears it, so the two paths agree.
+     */
+    private static List<RecipeHolder<SpawnerModifier>> modifierRecipes(RecipeManager recipes) {
+        RecipeManager cachedFor = cachedRecipeManager;
+        if (cachedFor == recipes) {
+            return cachedModifiers;
+        }
+
+        List<RecipeHolder<SpawnerModifier>> found;
+        try {
+            found = recipes.getAllRecipesFor(ASObjects.SPAWNER_MODIFIER.get());
+        }
+        catch (RuntimeException ex) {
+            // A reload may be swapping the manager mid-call. Cache the empty answer anyway, so a broken state does not
+            // turn into one stack trace per item indexed.
+            LOGGER.warn("[ApotheosisExpansion] Could not read spawner modifier recipes; rune tooltips are skipped", ex);
+            found = List.of();
+        }
+
+        cachedRecipeManager = recipes;
+        cachedModifiers = found;
+        return found;
+    }
+
     private static List<StatModifier<?>> scan(ItemStack stack, Level level) {
         RecipeManager recipes = level.getRecipeManager();
         if (recipes == null) {
             return List.of();
         }
 
-        List<RecipeHolder<SpawnerModifier>> candidates;
-        try {
-            candidates = recipes.getAllRecipesFor(ASObjects.SPAWNER_MODIFIER.get());
-        }
-        catch (RuntimeException ex) {
-            // The recipe manager is replaced during /reload; a tooltip gathered mid-swap simply shows nothing.
-            LOGGER.warn("[ApotheosisExpansion] Could not read spawner modifier recipes; the rune tooltip is skipped", ex);
+        List<RecipeHolder<SpawnerModifier>> candidates = modifierRecipes(recipes);
+        if (candidates.isEmpty()) {
             return List.of();
         }
 
@@ -171,8 +211,8 @@ public final class SpawnerRuneTooltips {
             changes.addAll(modifier.getStatModifiers());
         }
 
-        LOGGER.debug("[ApotheosisExpansion] {} of {} spawner modifier recipes match {}",
-            changes.size(), candidates.size(), stack.getItem());
+        // No log on the miss path. This method runs for every item a recipe viewer indexes (EMI walks the whole item
+        // registry on its baking thread), so logging here - even at debug - produced thousands of lines per launch.
         return List.copyOf(changes);
     }
     private static boolean matches(SpawnerModifier modifier, ItemStack stack) {

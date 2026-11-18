@@ -247,6 +247,18 @@ console.log('\n4) values come from the recipe, not from a hard-coded table');
   ok(/CACHE\.clear\(\)/.test(tooltips), 'the memo is cleared on invalidate()');
   ok(/RecipesUpdatedEvent[\s\S]{0,160}invalidate\(\)/.test(client),
     'a new recipe set invalidates the memo, so /reload is reflected');
+
+  // No logging on the per-item path. A recipe viewer indexes the entire item registry on its baking thread, so a log
+  // line inside the scan produced ~3800 lines per launch for a mod that only wants to describe ~17 items.
+  const scanBody = tooltips.slice(tooltips.indexOf('private static List<StatModifier<?>> scan('));
+  const scanFn = scanBody.slice(0, scanBody.indexOf('\n    private static boolean matches'));
+  ok(!/LOGGER\./.test(scanFn),
+    'the per-item scan path contains no logging (it runs once per indexed item)');
+  // The candidate list must be memoised per recipe table, not copied on every item.
+  ok(/cachedRecipeManager/.test(tooltips),
+    'the spawner modifier recipe list is memoised per RecipeManager instance');
+  ok(/cachedFor == recipes/.test(tooltips),
+    'the memo is keyed on the manager identity, so a reload re-reads it');
 }
 
 // ---------------------------------------------------------------- 5. the config switch
