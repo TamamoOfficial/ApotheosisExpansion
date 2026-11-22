@@ -75,6 +75,11 @@ public class ApotheosisExpansion {
         // rather than at construction time.
         NeoForge.EVENT_BUS.addListener(GemTweakApplier::onDatapackSync);
 
+        // Spawn-lane statistics. Only does work when debug_mob_cap is on, so this listener is free in normal play.
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) ->
+            com.tamamo.apotheosisexpansion.spawn.SpawnLanes.debugTick(
+                event.getServer().overworld().getGameTime(), 200));
+
         // Client-only extension point: gives the mod a working "Config" button in the mod list.
         // Without an explicit IConfigScreenFactory the button stays disabled, because NeoForge only registers the
         // generic ConfigurationScreen for its own container.
@@ -109,11 +114,14 @@ public class ApotheosisExpansion {
             phase, Config.enableAffixes(), Config.enableSockets(), Config.minRarity(), Config.maxRarity(),
             Config.enableWardenUnlock(), Config.enableElderGuardianUnlock(), Config.enableRespawnHealthFix(),
             Config.enableGemTweaks(), Config.gemDropChanceMultiplier(), Config.enableThermalInvaders(), Config.enableMekanismInvaders(), Config.enableArsNouveauInvaders());
-        LOGGER.info("[ApotheosisExpansion] Named-mob peaceful protection: {}",
-            Config.enableNamedPeacefulProtection());
+        LOGGER.info("[ApotheosisExpansion] Named-mob peaceful protection: {}; named-piglin no-zombify: {}",
+            Config.enableNamedPeacefulProtection(), Config.enableNamedPiglinNoZombify());
         LOGGER.info("[ApotheosisExpansion] Multiplayer monster cap: {} (all tiers: {}, bonus {} per extra player, ceiling {} players)",
             Config.enableMobCapScaling(), Config.mobCapCountAllTiers(),
             Config.mobCapBonusPerPlayer(), Config.mobCapMaxPlayers());
+        LOGGER.info("[ApotheosisExpansion] Extra spawn lanes: {} (regional difficulty >= {}, real players only: {})",
+            Config.enableSpawnLanes(), Config.spawnLanesMinRegionalDifficulty(),
+            Config.spawnLanesRealPlayersOnly());
         LOGGER.info("[ApotheosisExpansion] Per-entity invader switches: {}",
             Config.invaderEntityIds().stream().filter(Config::isEntityInvaderEnabled).sorted().toList());
 
@@ -122,6 +130,10 @@ public class ApotheosisExpansion {
         // meant to avoid.
         com.tamamo.apotheosisexpansion.spawn.MobCapScaler.setDebug(Config.debugMobCap());
         com.tamamo.apotheosisexpansion.spawn.MobCapScaler.clearCache();
+        // Spawn lanes share debug_mob_cap: one switch for "show me why spawning did or did not happen" is easier to
+        // find than two, and the counters are reset here so a reload starts a clean measurement window.
+        com.tamamo.apotheosisexpansion.spawn.SpawnLanes.setDebug(Config.debugMobCap());
+        com.tamamo.apotheosisexpansion.spawn.SpawnLanes.resetStats();
 
         // The gem tweaks bake their values into Apotheosis' live objects, so a config change alone does nothing.
         // Re-running them here is what makes the toggle and the multiplier hot-reloadable.

@@ -9,9 +9,11 @@
         "CreativeTargetFilter$NaturalSpawn",
         "CreativeTargetFilter$BossSpawner",
         "NameTagItemMixin",
+        "NamedPiglinConversionMixin",
         "spawn.LocalMobCapCalculatorMixin",
         "spawn.MobCountsMixin",
         "spawn.SpawnStateMixin",
+        "spawn.SpawnLanesMixin",
         "spawn.PlayerListFakeTierMixin"
     ],
     "injectors": {

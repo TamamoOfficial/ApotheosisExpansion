@@ -20,8 +20,6 @@ import net.minecraft.world.inventory.ResultSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.List;
-
 /**
  * Applies Apotheosis affixes and gem sockets to items a player just crafted.
  * <p>
@@ -45,6 +43,11 @@ import java.util.List;
  * <p>
  * {@code clicked} also runs on the client ({@code MultiPlayerGameMode} predicts the click), so every entry point
  * bails out unless we are on the logical server. Clients learn the result through normal container synchronisation.
+ * <p>
+ * <b>Combines are not crafts.</b> Before the click, the grid and the recipe that matches it are captured. When that
+ * recipe is vanilla's repair-item combine the output is treated as derived from its inputs — data is inherited from
+ * the best input, and a combine of two plain items stays plain instead of minting a fresh affixed item. Every other
+ * recipe is a real craft and is rolled normally. See {@link RepairCombineInheritance}.
  */
 @Mixin(AbstractContainerMenu.class)
 public abstract class AbstractContainerMenuMixin {
@@ -60,19 +63,19 @@ public abstract class AbstractContainerMenuMixin {
     private ItemStack apotheosisExpansion$beforeCarried;
 
     /**
-     * Copies of the crafting grid stacks that carry Apotheosis data, captured before the click.
+     * Snapshot of the crafting grid taken before the click, including the resolved recipe.
      * Used to detect the vanilla repair-combine recipe (two damaged tools -> one plain output) and inherit
-     * the inputs' affixes instead of re-rolling them.
+     * the inputs' affixes instead of re-rolling them - and to leave every other recipe on the normal path.
      */
     @Unique
     @Nullable
-    private List<ItemStack> apotheosisExpansion$gridSources;
+    private RepairCombineInheritance.GridSnapshot apotheosisExpansion$gridSnapshot;
 
     @Inject(method = "clicked", at = @At("HEAD"))
     private void apotheosisExpansion$captureBefore(int slotId, int button, ClickType clickType, Player player, CallbackInfo ci) {
         this.apotheosisExpansion$before = null;
         this.apotheosisExpansion$beforeCarried = null;
-        this.apotheosisExpansion$gridSources = null;
+        this.apotheosisExpansion$gridSnapshot = null;
 
         if (!apotheosisExpansion$isServerCraftingResultClick((AbstractContainerMenu) (Object) this, slotId, player)) {
             return;
@@ -91,7 +94,7 @@ public abstract class AbstractContainerMenuMixin {
         // menus the vanilla way are covered automatically.
         for (Slot slot : ((AbstractContainerMenu) (Object) this).slots) {
             if (slot.container instanceof net.minecraft.world.inventory.CraftingContainer grid) {
-                this.apotheosisExpansion$gridSources = RepairCombineInheritance.snapshotApothGridItems(grid);
+                this.apotheosisExpansion$gridSnapshot = RepairCombineInheritance.snapshot(player.level(), grid);
                 break;
             }
         }
@@ -101,7 +104,7 @@ public abstract class AbstractContainerMenuMixin {
     private void apotheosisExpansion$decorateAfter(int slotId, int button, ClickType clickType, Player player, CallbackInfo ci) {
         ItemStack[] before = this.apotheosisExpansion$before;
         ItemStack beforeCarried = this.apotheosisExpansion$beforeCarried;
-        List<ItemStack> gridSources = this.apotheosisExpansion$gridSources;
+        RepairCombineInheritance.GridSnapshot grid = this.apotheosisExpansion$gridSnapshot;
 
         // No snapshot means the HEAD hook decided this click cannot craft anything.
         if (before == null || beforeCarried == null) {
@@ -109,7 +112,7 @@ public abstract class AbstractContainerMenuMixin {
         }
         this.apotheosisExpansion$before = null;
         this.apotheosisExpansion$beforeCarried = null;
-        this.apotheosisExpansion$gridSources = null;
+        this.apotheosisExpansion$gridSnapshot = null;
 
         AbstractContainerMenu menu = (AbstractContainerMenu) (Object) this;
 
@@ -119,10 +122,7 @@ public abstract class AbstractContainerMenuMixin {
             // Normal click: the crafted item is on the cursor.
             ItemStack carried = menu.getCarried();
             if (apotheosisExpansion$isNewlyAppeared(beforeCarried, carried)) {
-                if (RepairCombineInheritance.tryInherit(carried, gridSources)) {
-                    menu.setCarried(carried);
-                }
-                else if (CraftedAffixRoller.tryApply(carried, player)) {
+                if (apotheosisExpansion$decorate(carried, player, grid)) {
                     menu.setCarried(carried);
                 }
                 return;
@@ -139,10 +139,7 @@ public abstract class AbstractContainerMenuMixin {
                 if (!apotheosisExpansion$isNewlyAppeared(prior, after)) {
                     continue;
                 }
-                if (RepairCombineInheritance.tryInherit(after, gridSources)) {
-                    inv.setItem(i, after);
-                }
-                else if (CraftedAffixRoller.tryApply(after, player)) {
+                if (apotheosisExpansion$decorate(after, player, grid)) {
                     inv.setItem(i, after);
                 }
             }
@@ -151,6 +148,35 @@ public abstract class AbstractContainerMenuMixin {
             // A generation failure must never break the crafting interaction.
             LogUtils.getLogger().error("[ApotheosisExpansion] Failed to apply affixes to a crafted item", ex);
         }
+    }
+
+    /**
+     * Applies the right treatment to one freshly produced stack.
+     * <p>
+     * <b>Repair combines are never rolled.</b> When the click ran vanilla's repair-item recipe the output is
+     * <em>derived from</em> its inputs, not newly crafted:
+     * <ul>
+     * <li>an input carried Apotheosis data — copy the best input's data onto the output;</li>
+     * <li>no input carried any — leave the output plain.</li>
+     * </ul>
+     * The second case is the loophole fix: rolling there made two cheap plain tools mint affixed gear on every
+     * merge, turning the repair grid into a free affix generator that sidesteps
+     * {@code skip_if_already_affixed} entirely.
+     * <p>
+     * Every other recipe is a genuine craft and goes through the normal roll, which still honours
+     * {@code skip_if_already_affixed} for inputs that legitimately keep their components.
+     *
+     * @return true when the stack was modified and must be written back to its slot
+     */
+    @Unique
+    private static boolean apotheosisExpansion$decorate(ItemStack stack, Player player, @Nullable RepairCombineInheritance.GridSnapshot grid) {
+        if (RepairCombineInheritance.tryInherit(stack, grid)) {
+            return true;
+        }
+        if (RepairCombineInheritance.isNonRollingCombine(grid)) {
+            return false;
+        }
+        return CraftedAffixRoller.tryApply(stack, player);
     }
 
     /**

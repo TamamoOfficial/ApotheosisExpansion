@@ -23,6 +23,8 @@
 - [十一、与神化刷怪笼的关系](#十一与神化刷怪笼的关系)
 - [十二、多人共享刷怪额度](#十二多人共享刷怪额度)
 - [十三、刷怪笼符文的-tooltip](#十三刷怪笼符文的-tooltip)
+- [十四、宝石图鉴（JEI/EMI）](#十四宝石图鉴jeiemi)
+- [十五、冒险：命名生物的两项保护](#十五冒险命名生物的两项保护)
 
 ---
 
@@ -63,13 +65,33 @@
 
 ### 根因
 
-神化的 `RepairItemRecipe` 判定「是否带属性」用的是一个模糊匹配。合并两个带词条的同款装备时，
-结果物品会**重新随机一次词条**，洗掉玩家精心 roll 的属性。
+原版 `RepairItemRecipe#assemble` 造一个全新的 `ItemStack(item)`，只带走耐久与诅咒附魔，
+神化的词条、稀有度、槽位全部丢失。产物因此在 `skip_if_already_affixed` 眼里是「干净的新装备」，
+**会重新随机一套词条**——两件满词条镐合并，roll 出来的属性被洗掉。
 
 ### 修复
 
-在 `clicked` 的 `HEAD` 处快照参与合并的两件物品，在 `TAIL` 处把词条原样继承给结果物品，
-不再让 `assemble` 重掷。
+在 `clicked` 的 `HEAD` 处快照合成表，并向配方表问出**这一次点击实际命中的配方**；
+在 `TAIL` 处按配方类型分别处理：
+
+| 命中的配方 | 处理 |
+|---|---|
+| `RepairItemRecipe`（原版修复合并） | **永不重掷**。输入带词条 → 继承最优的一件；输入都没有词条 → 产物保持普通 |
+| 其它任何配方（有序/无序/模组/其它特殊配方） | 正常掷词条，仍受 `skip_if_already_affixed` 约束 |
+
+### 为什么必须「按配方」判定，而不是「看物品像不像」
+
+早期实现只比较「产物与某个输入是不是同一种物品」。这个判断会误伤普通合成：2×2、3×3 的
+有序/无序配方同样存在「产物与输入同种物品」的情况，而真正的合并配方才是唯一会**吃掉两个输入、
+重造一个干净物品**的配方。误判的后果是输入上的词条泄漏到一件真正新做的装备上。
+
+### 为什么合并产物不能重掷（漏洞修复）
+
+把合并产物当成「新做的装备」来掷词条，等于**两件便宜的白板破损装备每合并一次就白送一件带词条装备**。
+这既是词条来源的漏洞，也绕开了 `skip_if_already_affixed` 的全部设计意图。因此：
+
+- 「合并产物不重掷」**不可配置**——能被玩家关掉的修 bug 开关不算修复；
+- `inherit_on_repair_combine` 只决定「输入的词条要不要继承」，关闭后产物是普通物品，而不是重新随机。
 
 ---
 
@@ -690,3 +712,125 @@ if (FMLEnvironment.dist.isClient() && SpawnerRuneIntegration.isAvailable()) {
 
 `build/verify_spawner_rune_tooltips.js` 静态守住这些约定：API 是否还在、四枚升级符文是否仍是
 五项全设、`spawnerrune/` 之外是否出现该模组的类型引用、以及缓存失效是否真的接在事件上。
+
+---
+
+## 十四、宝石图鉴（JEI/EMI）
+
+神化的帕秋莉手册只说宝石「可能在箱子战利品中找到，也可能在杀怪时少量找到」——**哪种宝石掉在哪个
+维度、哪个世界层级才会开始掉、每个纯度的增幅到底是多少**，这些规则只存在于数据文件里，游戏内没有任何
+一处能查到。本节给 JEI 与 EMI 各加一套「宝石图鉴」页面，把这三件事直接摊开。
+
+### 页面内容
+
+**每种宝石一页**（不是每个纯度一页——那样类别列表里会堆出几十条几乎相同的条目）：
+
+- **掉落来源**：能掉在哪些维度（核心宝石全维度可掉，主世界系只在主世界，末地系只在末地……；
+  暮色森林系的 `twilightforest:twilight_forest` 这类模组维度直接显示 id），以及哪些世界层级
+  （权重为 0 的层级不显示——那一级根本不会掉）；
+- **附加限制**：受生物群系或游戏阶段（gamestages）限制的宝石会明确标出，页面不会悄悄漏掉一道门槛；
+- **增幅表**：每条增幅一行，行内按纯度顺序（有瑕 → 完美，只列该宝石 `min_purity` 以上的纯度）
+  把各纯度的**数值**用「/」并列，公共文字只写一次——例如「轻型武器：+1 / +2 / +3.5 / +5 / +7 / +10 攻击伤害」；
+  压缩在数字边界处切开，不会把「10%」劈成「1 / 0%」。某条增幅不覆盖的纯度显示「-」，列不会错位；
+  不随纯度变化的增幅只显示一个数值、不带斜杠。措辞与数值**就是神化自己 tooltip 里的那份**——
+  页面直接调用 `GemBonus#getSocketBonusTooltip`，而不是自己重新实现一遍格式。
+
+### 数据从哪来
+
+**不写死，读已加载的宝石注册表。** 页面在查看器重建索引时（进存档、`/reload`、F3+T）从
+`GemRegistry` 现场读取，所以：整合包改过权重或约束、别的模组自带宝石、甚至本模组
+`gem_weight_multipliers` 把某颗宝石调到 0——图鉴显示的都是**当下真正会掉的那份规则**。
+
+### JEI 与 EMI 同时安装时：只有 EMI 生效
+
+EMI 自带 JEMI 桥接，会把 JEI 插件的页面**原样导入**自己的索引。如果两边都注册，每颗宝石会出现
+两份一模一样的页面。因此裁决规则是：
+
+| 安装情况 | 结果 |
+| --- | --- |
+| 只有 JEI | JEI 页面 |
+| 只有 EMI | EMI 页面 |
+| **两个都装** | **只有 EMI 页面，JEI 插件整体静默** |
+
+裁决在 `GemCompendiumGate`：先按类资源探测（不 `Class.forName`，与本模组其它联动探测同一套做法），
+`ModList` 作第二意见。JEI 插件类仍然会被 JEI 实例化——这是注解发现机制决定的——但它的每个注册方法
+都先问 `useJei()`，两个都装时直接返回，什么都不注册。
+
+### 页面怎么打开
+
+- JEI：宝石物品本身是页面的输入与（隐藏）输出槽，对着任意宝石按 U/R 即可翻到它的页面；
+  页面布局复用 JEI 自带信息页（170×125、顶部槽位、下方滚动文本框）；
+- EMI：同一套输出链接（宝石页的输出槽就是那颗宝石），长页自动分页，
+  翻页按钮与 EMI 自带信息页同款。
+
+`gems.enable_gem_compendium`（默认开）可以整体关掉；该项只在装了 JEI 或 EMI 的客户端才会出现在
+配置文件里——服务端与没装查看器的客户端根本不注册这个键。改动后 F3+T 或重进存档生效。
+
+`build/verify_gem_compendium.js` 静态守住这些约定：EMI 优先裁决是否覆盖每个注册入口、探测目标类是否
+真实存在于 JEI/EMI jar、编译产物上的发现注解是否还在、页面用到的每个翻译键在两份语言文件里是否都有、
+以及用神化 jar 里的 23 颗实装宝石逐一核对维度/层级/最低纯度规则。
+
+---
+
+## 十五、冒险：命名生物的两项保护
+
+`[adventure]` 段下的两个开关解决同一类问题：**玩家亲自用命名牌命名的生物，不该被原版的
+全局规则悄悄删掉/换掉**。两者共用同一个判定——实体标签 `apotheosis_expansion.named`，
+由 `NameTagItemMixin` 在玩家成功使用命名牌的那一刻打上。
+
+### 为什么是标签，而不是 `hasCustomName`
+
+`hasCustomName` 的含义远比「玩家给它起过名字」宽：神化给每个入侵者和小头目自动生成名字，
+刷怪蛋可以携带名称组件，史莱姆分裂时子体会继承父体名称。按名称判断会连带保护玩家从未碰过的
+生物。 scoreboard 标签则是原版的、随存档保存、`/data get entity` 可见、`/tag` 命令可增删，
+而且在本模组里只有命名牌这一条写入路径。
+
+### 十五·一 命名生物和平保护（`enable_named_peaceful_protection`）
+
+原版 `Mob#checkDespawn` 把和平模式判定排在持久化标记**之前**：
+
+```java
+if (this.level().getDifficulty() == Difficulty.PEACEFUL && this.shouldDespawnInPeaceful()) {
+    this.discard();              // <- 这条分支不看 isPersistenceRequired
+} else if (!this.isPersistenceRequired() && ...) {
+    ...距离清理...                // <- 命名牌 setPersistenceRequired 只影响这条
+}
+```
+
+所以命名牌对「切和平」这件事完全无效——名字保不住宠物。修复走 NeoForge 官方的
+`MobDespawnEvent`：`checkDespawn` 开头就有 `EventHooks.checkMobDespawn(this)`，其契约明确
+包含「可用于阻止生物在和平模式下消失」，返回 `DENY` 即跳过删除。用 `LOWEST` 优先级是因为
+这是个 Result 型事件（所有处理器依次写同一个字段，最后写的赢），本模组只抬高 `DENY`、
+从不写 `ALLOW`，排最后不会抢走任何人的判定。
+
+### 十五·二 命名猪灵不变僵尸猪灵（`enable_named_piglin_no_zombify`）
+
+猪灵的转化不看任何「玩家意图」：`AbstractPiglin#isConverting` 的条件只有三条——
+
+```java
+return !this.level().dimensionType().piglinSafe()   // 主世界、末地都不 safe
+    && !this.isImmuneToZombification()              // 只有 NBT 字段 IsImmuneToZombification ...
+    && !this.isNoAi();                              // ... 和下界传送门会给免疫
+```
+
+`customServerAiStep` 在这个门控上累加 `timeInOverworld`，超过 300 tick（15 秒）就完成转化。
+牵一只猪灵宠物过传送门来主世界，15 秒后它就变成了僵尸猪灵，名字之外的一切（装备、标签、
+仇恨逻辑）都被换掉。
+
+`NamedPiglinConversionMixin` 注入 `isConverting` 头部：带命名标签时直接返回 false。
+效果是**计时根本不会启动**——比取消 `LivingConversionEvent.Pre` 更干净：事件从第 300 tick
+起每 tick 触发一次且拦不住计时器继续走，而 `PiglinAi` 的「转化前撤退」行为也读同一个门控，
+短路之后猪灵连后退表现都没有，完全恢复正常行为。去掉标签或关闭开关后，15 秒计时从零重新开始。
+
+范围按需求只圈猪灵系（`AbstractPiglin` = 猪灵 + 猪灵蛮兵）。疣猪兽（Hoglin）有一个自己声明的
+同名 `isConverting`、不继承自 AbstractPiglin，本 mixin 结构上就够不到它，不受影响。
+`remap = false` 的理由与全项目一致：无 refmap 构建，锚点必须写生产名。
+
+### 热更新
+
+两项都是每 tick / 每次事件实时读配置：改 TOML 保存即生效，不需要 `/reload`，
+对场上已有的生物立即起作用。
+
+`build/verify_named_piglin_mixin.js` 静态守住第二项的全部前提：`isConverting()Z` 的生产名、
+`customServerAiStep` 确实经此门控且阈值为 300、Hoglin 不在继承链上、注入器形态
+（cancellable + `CallbackInfoReturnable<Boolean>`）、以及配置键 / mixin 注册 / 语言键的接线。

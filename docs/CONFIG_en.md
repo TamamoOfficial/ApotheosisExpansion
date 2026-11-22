@@ -60,7 +60,7 @@ sub-section's values are gone.
 | `crafting` | `socket_chance` | Trigger chance (0–1) |
 | `crafting` | `skip_if_already_affixed` | Skip items that already have affixes |
 | `crafting` | `allow_non_equipment` | Also process non-equipment items |
-| `crafting` | `inherit_on_repair_combine` | Inherit affixes on repair-combine (bug-fix switch) |
+| `crafting` | `inherit_on_repair_combine` | Carry the inputs' affixes over on repair-combine (the merge itself never re-rolls; not configurable) |
 | `rarity` | `min_rarity` | Lowest rarity that can be rolled |
 | `rarity` | `max_rarity` | Highest rarity that can be rolled |
 | `rarity` | `respect_world_tier` | Also clamp the cap to the world tier |
@@ -75,7 +75,12 @@ sub-section's values are gone.
 | `player` | `sync_mob_cap_to_hud` | Push the scaled cap to MiniHUD / Servux (cold switch) |
 | `player` | `fake_players_inherit_world_tier` | Fake players inherit their summoner's world tier |
 | `player` | `debug_mob_cap` | Log the cap multiplier calculation (diagnostics) |
+| `player` | `enable_spawn_lanes` | Extra spawn pass per chunk at high regional difficulty |
+| `player` | `spawn_lanes_min_regional_difficulty` | Regional difficulty needed for the second pass (default 5.5) |
+| `player` | `spawn_lanes_real_players_only` | Count only real players for the gate (default on) |
 | `adventure` | `enable_named_peaceful_protection` | Mobs tagged `apotheosis_expansion.named` survive Peaceful |
+| `adventure` | `enable_named_piglin_no_zombify` | Named piglins/brutes never zombify in the Overworld |
+| `gems` | `enable_gem_compendium` | Gem compendium pages in JEI/EMI (the key only exists with a viewer installed) |
 | `gems` | `enable_gem_tweaks` | Master switch for gem drop tuning |
 | `gems` | `gem_drop_chance_multiplier` | Global chance multiplier |
 | `gems` | `gem_weight_multipliers` | List of `"id=multiplier"` |
@@ -118,6 +123,7 @@ Two different things are involved:
 | Crafted gear (affixes / sockets / rarity / repair-combine) | **Save only** | Config is read live inside the event handler |
 | Spawn egg unlocks (Warden / Elder Guardian) | **Save only** | Read live on interaction |
 | Respawn health / named-mob peaceful protection | **Save only** | Read live inside the event handler |
+| Named piglin no-zombify | **Save only** | Read live inside the mixin every tick |
 | Monster cap (scaling / tier mode / bonus / ceiling) | **Save only** | Read on every spawn check; the memo key carries a generation counter |
 | HUD sync / debug logging | **Save only** | Read live on each call |
 | Gem drop multipliers | **Save only** | Rebuilt automatically on config and data-pack reload |
@@ -153,7 +159,7 @@ Three constraints, all of which must hold:
 ./gradlew build
 ```
 
-Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.1.0.jar`
+Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.1.1.jar`
 
 **Dependencies**: Apotheosis / Placebo / Apothic Attributes resolve from
 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/):
@@ -202,6 +208,7 @@ predicate, the spawner-rune tooltips and README links:
 node build/validate_invaders.js thermal
 node build/verify_mixin.js
 node build/test_filter_predicate.js
+node build/verify_repair_combine.js
 node build/verify_spawner_rune_tooltips.js
 node build/test_spawner_rune_tooltips.js
 node build/verify_readme.js

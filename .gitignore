@@ -45,3 +45,8 @@ logs/
 # Locally generated javac classpath (absolute paths, machine specific)
 build/cp_full.txt
 cp_full.txt
+
+# Local scratch: unpacked reference data from the Apotheosis jar (see build/README.md env vars),
+# and the farmlab in-vivo test rig (own gradle project + run dir + world saves).
+/data/
+/farmlab/

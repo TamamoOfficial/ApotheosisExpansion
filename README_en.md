@@ -24,8 +24,9 @@ Every feature can be toggled independently from the in-game config screen.
 |---|---|
 | **Crafted gear rolls affixes** | Player-crafted equipment gets Apotheosis affixes and gem sockets |
 | **Spawn egg unlock** | Lifts the spawner restriction on Warden and Elder Guardian eggs |
-| **Repair-combine fix** | Fixes affixes being re-rolled when combining two items in an anvil |
+| **Repair-combine fix** | Fixes affixes being re-rolled when combining two items; a merge can no longer mint affixes from nothing (exploit fix) |
 | **Gem drop tuning** | Scales gem drop rates and weights by multiplier |
+| **Gem compendium (JEI/EMI)** | One page per gem per purity: which dimensions/tiers it drops in and the exact bonuses; with both viewers installed only EMI registers |
 | **Shared monster budget** | Players sharing a spawn platform raise the monster cap together; optionally across tiers |
 | **Spawner rune stats** | Lists what a rune actually changes in its tooltip, read from the loaded data pack |
 
@@ -35,6 +36,7 @@ Every feature can be toggled independently from the in-game config screen.
 |---|---|
 | **Respawn health fix** | Respawns at the real maximum health instead of a flat 20 HP |
 | **Named-mob peaceful protection** | Player-named mobs survive switching the world to Peaceful |
+| **Named piglins never zombify** | Player-named piglins and brutes stay piglins in the Overworld |
 | **Fake player tier inheritance** | Fake players adopt their summoner's world tier, so the shared cap works for them too |
 
 ### Mod integration
@@ -106,7 +108,7 @@ exception is the invader switches, which feed data-pack conditions and need a da
 ./gradlew build
 ```
 
-Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.1.0.jar`
+Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.1.1.jar`
 
 Dependencies are downloaded by Gradle from
 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/), so **a fresh clone

@@ -101,15 +101,29 @@ public final class Config {
     public static final BooleanValue FAKE_PLAYERS_INHERIT_WORLD_TIER;
     public static final BooleanValue DEBUG_MOB_CAP;
 
+    // ---- extra spawn lanes ------------------------------------------------
+
+    public static final BooleanValue ENABLE_SPAWN_LANES;
+    public static final DoubleValue SPAWN_LANES_MIN_REGIONAL_DIFFICULTY;
+    public static final BooleanValue SPAWN_LANES_REAL_PLAYERS_ONLY;
+
     // ==== [adventure] ======================================================
 
     public static final BooleanValue ENABLE_NAMED_PEACEFUL_PROTECTION;
+    public static final BooleanValue ENABLE_NAMED_PIGLIN_NO_ZOMBIFY;
 
     // ==== [gems] ===========================================================
 
     public static final BooleanValue ENABLE_GEM_TWEAKS;
     public static final DoubleValue GEM_DROP_CHANCE_MULTIPLIER;
     public static final ConfigValue<List<? extends String>> GEM_WEIGHT_MULTIPLIERS;
+
+    /**
+     * Not {@code final}: the gem compendium is a recipe-viewer feature, so its key is only registered when a viewer
+     * is installed. On a dedicated server, and on a client with neither JEI nor EMI, the key never appears in the
+     * file and no empty toggle shows in the config screen.
+     */
+    public static BooleanValue ENABLE_GEM_COMPENDIUM;
 
     // ==== [compat] =========================================================
 
@@ -248,8 +262,13 @@ public final class Config {
                 "valuable input (highest rarity, then most sockets) is copied onto the output.",
                 "稀有度和名称（多件输入时按稀有度优先、其次槽位数择优）。",
                 "",
-                "Set to false to re-roll combined items like any other craft instead.",
-                "设为 false 则恢复旧行为：合并产物与其他合成一样重新随机。")
+                "Set to false to stop carrying the inputs' data over.",
+                "设为 false 则不再继承输入装备的数据。",
+                "",
+                "Note: a merge output is never given a fresh random roll either way - two plain items",
+                "注意：无论如何，合并产物都不会被重新随机一次——两件无词条装备合并",
+                "must not be able to generate affixes. That part is not configurable.",
+                "不能凭空产出词条，这一条不可配置。")
             .translation(KEY + "crafting.general.inherit_on_repair_combine")
             .define("inherit_on_repair_combine", true);
         b.pop();
@@ -605,6 +624,69 @@ public final class Config {
                 "服务端生效。")
             .translation(KEY + "player.debug_mob_cap")
             .define("debug_mob_cap", false);
+
+        // ---- extra spawn lanes ------------------------------------------------
+        //
+        // Kept separate from the cap options because they solve different farms: the cap options raise how many mobs
+        // may EXIST (helps a farm that is capped), while an extra lane raises how many spawn ATTEMPTS happen per tick
+        // (helps a farm whose mobs die before the cap is reached). Measured on a wandering tower: 1.97x output for
+        // about +0.21 ms/tick.
+        ENABLE_SPAWN_LANES = b
+            .comment(
+                "Run a second monster spawn pass per chunk when the area is dangerous enough.",
+                "区域内区域难度较高时，每个区块额外执行一次刷怪尝试。",
+                "",
+                "Reuses the same SpawnState, so the population cap still holds - this raises",
+                "复用同一个 SpawnState，存量上限仍然生效——提高的是产量，",
+                "throughput, not the cap. Only hostile categories repeat; spawners are untouched.",
+                "不是上限。只重复敌对分类，刷怪笼不受影响。",
+                "",
+                "Server-authoritative; hot-reloadable.",
+                "服务端生效，可热更新。")
+            .translation(KEY + "player.enable_spawn_lanes")
+            .define("enable_spawn_lanes", false);
+        SPAWN_LANES_MIN_REGIONAL_DIFFICULTY = b
+            .comment(
+                "Regional difficulty required before the second pass runs.",
+                "开启第二条刷怪游走所需的区域难度。",
+                "",
+                "This is vanilla's Regional Difficulty - the value behind the F3 \"Local Difficulty\"",
+                "这是原版的区域难度——即 F3「本地难度」显示的那个数，",
+                "line, range 0.0-6.75, not the Apotheosis world tier. It rises with world time,",
+                "范围 0.0–6.75，不是神化的世界层级。它随世界时间、区块已居住时间",
+                "chunk inhabited time and nearby player count, and it already decides how strong",
+                "与附近玩家人数增长，本来也决定刷出怪物的强弱，用它做门槛",
+                "spawned mobs are, so gating on it keeps the two consistent.",
+                "能让两套系统保持一致。",
+                "",
+                "The default 5.5 is a late-game gate a fresh area cannot reach.",
+                "默认 5.5 属后期门槛，新区达不到。",
+                "Set to 0.0 to always allow it while the feature is on.",
+                "设为 0.0 则功能开启时始终允许。",
+                "",
+                "Server-authoritative; hot-reloadable.",
+                "服务端生效，可热更新。")
+            .translation(KEY + "player.spawn_lanes_min_regional_difficulty")
+            .defineInRange("spawn_lanes_min_regional_difficulty", 5.5D, 0.0D, 6.75D);
+        SPAWN_LANES_REAL_PLAYERS_ONLY = b
+            .comment(
+                "Count only real players when checking regional difficulty.",
+                "判定区域难度时只统计真实玩家。",
+                "",
+                "Regional difficulty counts every ServerPlayer, fake players included, so with",
+                "区域难度会统计所有 ServerPlayer，包括假人，因此关闭本项时",
+                "this off a few parked bots could push an empty area over the threshold.",
+                "几个挂机假人就能把空区域推过门槛。",
+                "",
+                "ON (default): only real connections count.",
+                "开启（默认）：只统计真实连接。",
+                "OFF: fake players count too, which is convenient for testing.",
+                "关闭：假人同等计入，方便测试。",
+                "",
+                "Server-authoritative; hot-reloadable.",
+                "服务端生效，可热更新。")
+            .translation(KEY + "player.spawn_lanes_real_players_only")
+            .define("spawn_lanes_real_players_only", true);
         b.pop(); // player
 
         // ---------------------------------------------------------------- adventure
@@ -612,8 +694,10 @@ public final class Config {
             "Adventure behaviour tweaks.",
             "冒险行为调整。",
             "",
-            "Currently: keeping player-named mobs alive when the world is switched to Peaceful.",
-            "当前包含：切换到和平模式时，保留被玩家命名的生物。")
+            "Currently: keeping player-named mobs alive when the world is switched to Peaceful,",
+            "当前包含：切换到和平模式时，保留被玩家命名的生物，",
+            "and keeping a player-named piglin from zombifying outside the nether.",
+            "以及被玩家命名的猪灵在主世界不会变成僵尸猪灵。")
             .translation(KEY + "adventure")
             .push("adventure");
         ENABLE_NAMED_PEACEFUL_PROTECTION = b
@@ -651,6 +735,36 @@ public final class Config {
                 "需要时请对结果重新打标。")
             .translation(KEY + "adventure.enable_named_peaceful_protection")
             .define("enable_named_peaceful_protection", true);
+        ENABLE_NAMED_PIGLIN_NO_ZOMBIFY = b
+            .comment(
+                "A player-named piglin or piglin brute never turns into a zombified piglin.",
+                "玩家命名的猪灵 / 猪灵蛮兵在主世界不会变成僵尸猪灵。",
+                "",
+                "Vanilla starts the conversion whenever the dimension is not piglinSafe (the Overworld and",
+                "原版的转化条件只看维度是否 piglinSafe（主世界与末地都不是），",
+                "the End) and finishes 300 ticks (15 seconds) later; only the NBT flag",
+                "300 tick（15 秒）后完成转化；只有存档字段 IsImmuneToZombification",
+                "IsImmuneToZombification or walking through a nether portal grants immunity -",
+                "和穿过下界传送门才能获得免疫，",
+                "a name tag does nothing, so a pet piglin followed over to the Overworld is lost.",
+                "命名牌完全不起作用，牵过来的宠物猪灵 15 秒后就没了。",
+                "",
+                "Same condition as enable_named_peaceful_protection: the entity tag",
+                "判定条件与 enable_named_peaceful_protection 相同：实体标签",
+                "'apotheosis_expansion.named', applied when a player uses a name tag.",
+                "'apotheosis_expansion.named'，即玩家使用命名牌成功命名时打上。",
+                "",
+                "The tagged piglin keeps its normal behaviour instead of retreating from its own",
+                "conversion; removing the tag or this toggle starts the 15-second count from zero.",
+                "被打标的猪灵保持正常行为，不会一边准备转化一边后退；",
+                "去掉标签或关闭本开关后，15 秒计时会从头重新开始。",
+                "",
+                "Piglin and piglin brute only, matching the request: hoglins have a separate",
+                "只针对猪灵与猪灵蛮兵（与需求一致）：疣猪兽有独立的镜像规则，",
+                "(mirrored) vanilla rule and are not touched.",
+                "本功能不影响它。")
+            .translation(KEY + "adventure.enable_named_piglin_no_zombify")
+            .define("enable_named_piglin_no_zombify", true);
         b.pop(); // adventure
 
         // ---------------------------------------------------------------- gems
@@ -726,6 +840,46 @@ public final class Config {
             .translation(KEY + "gems.gem_weight_multipliers")
             .defineListAllowEmpty("gem_weight_multipliers", List.of(), () -> "apotheosis:core/ballast=1.0",
                 Config::isValidWeightEntry);
+        // The compendium only means anything with a recipe viewer installed, so like the spawner-rune toggle the
+        // key is registered conditionally: no JEI and no EMI means no empty switch in the config screen. The probe
+        // is a class-resource lookup plus the mod list, both safe at config-construction time and on a server.
+        if (com.tamamo.apotheosisexpansion.gemcompendium.GemCompendiumGate.anyViewerPresent()) {
+            ENABLE_GEM_COMPENDIUM = b
+                .comment(
+                "Adds a gem compendium to JEI / EMI: which dimensions a gem drops in, and what each",
+                "在 JEI / EMI 中加入「宝石图鉴」：每种宝石能掉在哪些维度，以及每条增幅",
+                "bonus gives at every purity, side by side on one page per gem.",
+                "在各个纯度下的数值（每颗宝石一页，纯度数值以「/」并列）。",
+                "",
+                "Apotheosis' own Patchouli entry only says gems 'may be found in chest loot and rarely",
+                "神化自带的帕秋莉条目只说宝石「可能在箱子战利品中找到，也可能在杀怪时少量找到」，",
+                "from mobs', and its data files - the only place the real rules live - are not readable",
+                "而真正的规则只存在于数据文件里，玩家无从查看。",
+                "in game. The pages added here are generated from the loaded gem registry, so a data",
+                "本功能直接读取已加载的宝石注册表生成页面，因此数据包改动、",
+                "pack that retunes a gem, or a mod that ships its own gems, is described correctly",
+                "或其它模组自带的宝石，都会被正确显示，",
+                "with no code change here.",
+                "无需改动本模组代码。",
+                "",
+                "The two recipe viewers are handled as one feature, not two. When JEI and EMI are both",
+                "两个配方查看器被当作同一个功能处理，而不是两套：",
+                "installed only the EMI pages are registered, because EMI already imports JEI plugins",
+                "同时安装 JEI 与 EMI 时只注册 EMI 页面——EMI 的 JEMI 桥接本来就会导入 JEI 插件，",
+                "through JEMI and registering both would show every page twice. With only JEI, or only",
+                "两边都注册会让每个页面重复出现。只装 JEI 或只装 EMI 时，",
+                "EMI, that viewer gets the pages on its own.",
+                "则由该查看器单独提供页面。",
+                "",
+                "Client-side only; a dedicated server does not need this setting. The pages are built",
+                "仅客户端生效，服务端不需要该设置。页面在查看器重建索引时生成，",
+                "when the viewer rebuilds its index, which happens on world join and on every resource",
+                "即进入存档与每次重载资源（F3+T）时，",
+                "reload (F3+T), so the toggle takes effect without restarting the game.",
+                "因此开关无需重启游戏即可生效。")
+                .translation(KEY + "gems.enable_gem_compendium")
+                .define("enable_gem_compendium", true);
+        }
         b.pop(); // gems
 
         // ---------------------------------------------------------------- compat
@@ -1077,12 +1231,45 @@ public final class Config {
         return DEBUG_MOB_CAP.get();
     }
 
+    // ---- extra spawn lanes ------------------------------------------------
+
+    public static boolean enableSpawnLanes() {
+        return ENABLE_SPAWN_LANES.get();
+    }
+
+    public static double spawnLanesMinRegionalDifficulty() {
+        return SPAWN_LANES_MIN_REGIONAL_DIFFICULTY.get();
+    }
+
+    public static boolean spawnLanesRealPlayersOnly() {
+        return SPAWN_LANES_REAL_PLAYERS_ONLY.get();
+    }
+
     public static boolean enableNamedPeacefulProtection() {
         return ENABLE_NAMED_PEACEFUL_PROTECTION.get();
     }
 
+    /**
+     * Gates {@code NamedPiglinConversionMixin}: a player-named piglin / piglin brute never zombifies outside
+     * piglinSafe dimensions. Read inside the mixin on every tick the mob is asked whether it is converting, so the
+     * toggle is hot-reloadable.
+     */
+    public static boolean enableNamedPiglinNoZombify() {
+        return ENABLE_NAMED_PIGLIN_NO_ZOMBIFY.get();
+    }
+
     public static boolean enableGemTweaks() {
         return ENABLE_GEM_TWEAKS.get();
+    }
+
+    /**
+     * Gates the gem compendium pages in JEI / EMI.
+     * <p>
+     * Null when neither viewer is installed - the key was never registered - and treated as off then. Read by the
+     * viewer plugins on every index rebuild, so toggling it takes effect on the next F3+T or world join.
+     */
+    public static boolean enableGemCompendium() {
+        return ENABLE_GEM_COMPENDIUM != null && ENABLE_GEM_COMPENDIUM.get();
     }
 
     /**

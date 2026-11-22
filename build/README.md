@@ -21,8 +21,11 @@ node build/verify_readme.js
 | `test_fake_tier_sync.js` | 假人层级继承的四个场景与解析优先级 |
 | `test_hot_reload.js` | 配置热更新：无重启标记、无静态缓存、缓存键含世代计数 |
 | `verify_creative_filter.js` | 索敌修复的两个 @Redirect 目标 |
+| `verify_named_piglin_mixin.js` | 命名猪灵免转化：isConverting 门控、类范围（Hoglin 不受影响）、注入器与配置/语言接线 |
+| `verify_gem_compendium.js` | 宝石图鉴：EMI 优先裁决、探测目标类真实存在、翻译键齐备、23 颗宝石规则核对 |
 | `verify_vanilla_bosses.js` | 原版三大 BOSS 的设定与风险点 |
 | `verify_piglich_gear.js` | 猪巫妖装备钩子的顺序与概率 |
+| `verify_repair_combine.js` | 合并修复：只有真实合并配方才继承，合并产物永不重掷（漏洞修复） |
 | `test_filter_predicate.js` | 刷怪笼过滤器的白名单行为 |
 | `verify_spawner_rune_tooltips.js` | 符文 tooltip：Apothic Spawners API 是否还在、配方是否仍五项全设、可选依赖隔离、缓存失效接线 |
 | `test_spawner_rune_tooltips.js` | 符文 tooltip 的格式化行为表（用真实配方驱动：set/布尔/add/上下限/反向配方跳过） |

@@ -59,7 +59,7 @@
 | `crafting` | `socket_chance` | 触发概率（0~1） |
 | `crafting` | `skip_if_already_affixed` | 已带词条的物品跳过 |
 | `crafting` | `allow_non_equipment` | 是否也处理非装备物品 |
-| `crafting` | `inherit_on_repair_combine` | 合并修复时继承词条（bug 修复开关） |
+| `crafting` | `inherit_on_repair_combine` | 合并修复时继承输入词条（合并产物本身永不重掷，不可配置） |
 | `rarity` | `min_rarity` | 抽取稀有度下限 |
 | `rarity` | `max_rarity` | 抽取稀有度上限 |
 | `rarity` | `respect_world_tier` | 上限是否再受世界层级约束 |
@@ -74,7 +74,12 @@
 | `player` | `sync_mob_cap_to_hud` | 把放宽后的上限同步给 MiniHUD / Servux（冷开关） |
 | `player` | `fake_players_inherit_world_tier` | 假人继承召唤者的世界层级 |
 | `player` | `debug_mob_cap` | 记录上限倍率的计算过程（排查用） |
+| `player` | `enable_spawn_lanes` | 区域难度足够高时每区块多跑一轮刷怪尝试 |
+| `player` | `spawn_lanes_min_regional_difficulty` | 开启第二轮刷怪所需的区域难度（默认 5.5） |
+| `player` | `spawn_lanes_real_players_only` | 难度判定只统计真实玩家（默认开） |
 | `adventure` | `enable_named_peaceful_protection` | 带 `apotheosis_expansion.named` 标签的生物在和平模式不消失 |
+| `adventure` | `enable_named_piglin_no_zombify` | 命名猪灵/猪灵蛮兵在主世界不会变僵尸猪灵 |
+| `gems` | `enable_gem_compendium` | 在 JEI/EMI 中加入宝石图鉴页（仅装有查看器时出现该项） |
 | `gems` | `enable_gem_tweaks` | 宝石掉落调整总开关 |
 | `gems` | `gem_drop_chance_multiplier` | 掉落概率整体倍率 |
 | `gems` | `gem_weight_multipliers` | `"id=倍率"` 列表 |
@@ -115,6 +120,7 @@
 | 制作装备（词条 / 宝石槽 / 稀有度 / 修复合并） | **保存即生效** | 事件触发时实时读配置 |
 | 刷怪蛋解锁（坚守者 / 远古守卫者） | **保存即生效** | 交互时实时读配置 |
 | 复活回血 / 命名生物和平保护 | **保存即生效** | 事件触发时实时读配置 |
+| 命名猪灵免转化 | **保存即生效** | Mixin 每 tick 实时读配置 |
 | 怪物上限（缩放 / 层级 / 倍率 / 上限人数） | **保存即生效** | 每次刷怪判定实时读，缓存键含世代计数 |
 | HUD 同步 / 调试日志 | **保存即生效** | 每次调用实时读 |
 | 宝石掉落倍率 | **保存即生效** | 配置重载与数据包重载时自动重建 |
@@ -150,7 +156,7 @@
 ./gradlew build
 ```
 
-产物在 `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.1.0.jar`。
+产物在 `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.1.1.jar`。
 
 **依赖说明**：Apotheosis / Placebo / Apothic Attributes 从
 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/) 解析：
@@ -196,6 +202,7 @@ jar --create --file <目标>.jar --manifest <清单> -C <暂存目录> .
 node build/validate_invaders.js thermal
 node build/verify_mixin.js
 node build/test_filter_predicate.js
+node build/verify_repair_combine.js
 node build/verify_spawner_rune_tooltips.js
 node build/test_spawner_rune_tooltips.js
 node build/verify_readme.js

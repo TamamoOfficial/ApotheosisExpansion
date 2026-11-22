@@ -24,6 +24,7 @@ For a quick overview of what the mod does, see the [README](../README_en.md).
 - [11. Interaction with Apotheosis boss spawners](#11-interaction-with-apotheosis-boss-spawners)
 - [12. Shared monster budget for grouped players](#12-shared-monster-budget-for-grouped-players)
 - [13. Spawner rune tooltips](#13-spawner-rune-tooltips)
+- [14. Gem compendium (JEI/EMI)](#14-gem-compendium-jeiemi)
 
 ---
 
@@ -65,14 +66,37 @@ Vanilla spawners hard-reject the **Warden** and **Elder Guardian** spawn eggs.
 
 ### Root cause
 
-Apotheosis' `RepairItemRecipe` decides whether an item "has affixes" with a fuzzy check. When two
-identically-affixed items are combined, the resulting item **re-rolls its affixes**, wiping the rolls
-the player worked for.
+Vanilla `RepairItemRecipe#assemble` builds a brand-new `ItemStack(item)` and carries over only durability
+and curse enchantments. Every Apotheosis component — affixes, rarity, sockets — is dropped, so
+`skip_if_already_affixed` sees a clean new item and the output **re-rolls its affixes**. Merging two
+fully-affixed pickaxes wipes the rolls the player worked for.
 
 ### Fix
 
-Snapshot both input items at `HEAD` of `clicked`, then copy their affixes onto the result at `TAIL`
-so `assemble` no longer re-rolls.
+Snapshot the crafting grid at `HEAD` of `clicked`, ask the recipe manager which recipe **actually
+matched**, and branch on that at `TAIL`:
+
+| Matched recipe | Treatment |
+|---|---|
+| `RepairItemRecipe` (vanilla repair combine) | **Never re-rolled.** Affixed inputs → inherit the best one; plain inputs → output stays plain |
+| Any other recipe (shaped / shapeless / modded / other custom) | Rolls normally, still bounded by `skip_if_already_affixed` |
+
+### Why the recipe is identified, not guessed
+
+The first implementation only asked "is the output the same item as an input?". That also matches
+ordinary shaped and shapeless recipes, while the repair recipe is the one recipe that **consumes both
+inputs and rebuilds a plain stack**. Guessing meant affixes could leak from a consumed ingredient onto
+a genuinely new craft.
+
+### Why a combine output must never be rolled (the reported exploit)
+
+Treating a merge output as a "newly crafted item" means **two cheap plain damaged tools mint one
+affixed item on every merge**. That is both a free affix source and a way around everything
+`skip_if_already_affixed` exists to prevent. Therefore:
+
+- "a merge never re-rolls" is **not configurable** — a bug fix a player can switch off is not a fix;
+- `inherit_on_repair_combine` only decides whether the inputs' data is carried over. With it off the
+  output is plain, not re-rolled.
 
 ---
 
@@ -728,3 +752,140 @@ logs an error.
 `build/verify_spawner_rune_tooltips.js` guards these invariants statically: the API still exists, the four
 upgrade runes still set all five stats, no Apothic Spawners type appears outside `spawnerrune/`, and the cache
 invalidation really is wired to events.
+
+---
+
+## 14. Gem compendium (JEI/EMI)
+
+Apotheosis' Patchouli entry only says gems "may be found in chest loot and rarely from mobs" - **which gem
+drops in which dimension, from which world tier it starts dropping, and what each purity's bonus actually
+is** live only in data files, with no way to look any of it up in game. This section adds a gem compendium to
+JEI and to EMI that lays those three facts out.
+
+### Page contents
+
+**One page per gem** (not one per purity - that would pile dozens of near-identical entries into the category
+list):
+
+- **Drops from**: which dimensions the gem can drop in (core gems drop everywhere, the overworld set only in
+  the overworld, the end set only in the end...; modded dimensions such as `twilightforest:twilight_forest`
+  are shown by id), and which world tiers (tiers with weight 0 are not shown - that tier never rolls the gem);
+- **Extra gates**: gems restricted by biome or game stages say so explicitly; a page never silently omits a
+  gate the player cannot pass;
+- **Bonus table**: one row per bonus, and within the row only the *numbers* at each purity in the game's own order
+  (cracked to perfect, only purities at or above the gem's `min_purity`), joined by "/" with the shared wording
+  printed once - e.g. "Melee Weapons: +1 / +2 / +3.5 / +5 / +7 / +10 Attack Damage". The compression cuts at digit
+  boundaries so "10%" is never split into "1 / 0%". A purity a bonus does not cover prints "-", so the columns
+  never shift; a bonus that does not scale with purity prints one value with no slashes. The wording and numbers
+  **are exactly what Apotheosis' own tooltip shows** - the page calls `GemBonus#getSocketBonusTooltip` instead of
+  re-implementing the formats.
+
+### Where the data comes from
+
+**Nothing is hard-coded; the pages read the loaded gem registry.** They are built when the viewer rebuilds
+its index (world join, `/reload`, F3+T) from `GemRegistry`, so: a pack that retunes weights or constraints,
+another mod that ships its own gems, or this mod's own `gem_weight_multipliers` zeroing a gem out - the
+compendium always shows **the rules that are actually in effect right now**.
+
+### With both JEI and EMI installed: EMI only
+
+EMI ships the JEMI bridge, which imports JEI plugin pages **verbatim** into its own index. Registering both
+halves would list every gem page twice. So the arbitration rule is:
+
+| Installed | Result |
+| --- | --- |
+| JEI only | JEI pages |
+| EMI only | EMI pages |
+| **both** | **EMI pages only; the JEI plugin stays completely silent** |
+
+The decision lives in `GemCompendiumGate`: a class-resource probe first (never `Class.forName`, the same
+approach every other integration in this mod uses), with `ModList` as a second opinion. The JEI plugin class
+is still instantiated by JEI - that is how annotation discovery works - but every registration method asks
+`useJei()` first and returns without registering anything when both viewers are present.
+
+### Reaching a page
+
+- JEI: the gem item itself is the page's input and (invisible) output slot, so U/R on any gem lands on its
+  pages; the layout reuses JEI's own information page (170x125, slot row on top, scrolling text box below);
+- EMI: the same output link (a page's output slot is its gem), long pages paginate automatically, and the
+  prev/next buttons are the ones EMI's own information pages use.
+
+`gems.enable_gem_compendium` (default on) switches the whole feature off; the key only appears in the config
+file on a client that has JEI or EMI installed - a dedicated server, or a client with neither viewer, never
+registers it. Changes take effect after F3+T or rejoining a world.
+
+`build/verify_gem_compendium.js` guards these invariants statically: the EMI-wins arbitration covers every
+registration entry point, the probe targets really exist in the JEI/EMI jars, the discovery annotations are on
+the compiled classes, every translation key the pages use resolves in both language files, and the
+dimension/tier/min-purity rules are checked against all 23 gems shipped in the Apotheosis jar.
+
+---
+
+## 15. Adventure: two protections for player-named mobs
+
+The two switches under `[adventure]` solve one class of problem: **a mob the player personally named
+with a name tag should not be silently deleted or replaced by a global vanilla rule**. Both share the
+same condition - the entity tag `apotheosis_expansion.named`, applied by `NameTagItemMixin` at the
+moment a player successfully uses a name tag.
+
+### Why a tag and not `hasCustomName`
+
+`hasCustomName` means far more than "a player named this": Apotheosis stamps a generated name on every
+invader and elite, spawn eggs can carry a name component, and slime split children inherit the parent's
+name. A name-based rule would protect mobs the player never touched. The scoreboard tag, by contrast, is
+vanilla, persists in the save, shows up in `/data get entity`, can be added or removed by `/tag`, and in
+this mod the name tag is its only writer.
+
+### 15.1 Named mobs survive Peaceful (`enable_named_peaceful_protection`)
+
+Vanilla `Mob#checkDespawn` tests Peaceful *before* it ever looks at the persistence flag:
+
+```java
+if (this.level().getDifficulty() == Difficulty.PEACEFUL && this.shouldDespawnInPeaceful()) {
+    this.discard();              // <- this branch ignores isPersistenceRequired
+} else if (!this.isPersistenceRequired() && ...) {
+    ...distance culling...       // <- what setPersistenceRequired from a name tag feeds
+}
+```
+
+So a name tag does nothing against a switch to Peaceful. The fix uses NeoForge's own
+`MobDespawnEvent`: `checkDespawn` starts with `EventHooks.checkMobDespawn(this)`, whose contract
+explicitly includes "may be used to keep mobs from despawning in peaceful mode"; returning `DENY`
+skips the deletion. The handler runs at `LOWEST` priority because this is a Result-style event (every
+handler writes the same field and the last writer wins); this mod only ever raises `DENY`, never
+`ALLOW`, so being last takes nothing away from anyone.
+
+### 15.2 Named piglins never zombify (`enable_named_piglin_no_zombify`)
+
+Piglin conversion knows nothing about player intent. `AbstractPiglin#isConverting` is just three tests:
+
+```java
+return !this.level().dimensionType().piglinSafe()   // neither the Overworld nor the End is safe
+    && !this.isImmuneToZombification()              // only the NBT field IsImmuneToZombification ...
+    && !this.isNoAi();                              // ... and a nether portal grant immunity
+```
+
+`customServerAiStep` counts `timeInOverworld` up while that gate holds and converts past 300 ticks
+(15 seconds). Lead a pet piglin through a portal into the Overworld and it becomes a zombified piglin -
+gear, tags and AI all replaced - fifteen seconds later.
+
+`NamedPiglinConversionMixin` injects at the head of `isConverting` and returns false for a tagged mob.
+The timer never even starts. That is cleaner than cancelling `LivingConversionEvent.Pre`, which fires
+every tick from the 300th on, does not stop the counter, and would leave the mob standing in its
+pre-conversion retreat behaviour (`PiglinAi` picks the retreat sound through the same gate). Remove the
+tag or the toggle and the 15-second count restarts from zero.
+
+Scope is the piglin family only, as requested: `AbstractPiglin` covers piglin and piglin brute.
+Hoglin declares its own `isConverting` instead of inheriting this one, so the mixin structurally
+cannot reach it. `remap = false` for the usual project-wide reason: the build ships no refmap, so
+anchors must be written in production names.
+
+### Hot reload
+
+Both features read the config live (per event / per tick): saving the TOML is enough, no `/reload`,
+and the change applies to mobs already in the world immediately.
+
+`build/verify_named_piglin_mixin.js` guards every assumption of the second feature statically: the
+production name `isConverting()Z`, that `customServerAiStep` really gates on it at threshold 300,
+that Hoglin is not on the inheritance path, the injector shape (cancellable +
+`CallbackInfoReturnable<Boolean>`), and the config-key / mixin-registration / lang-key wiring.
