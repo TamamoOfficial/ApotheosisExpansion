@@ -67,3 +67,22 @@ type="optional"
 versionRange="[1.4.0,)"
 ordering="AFTER"
 side="BOTH"
+
+# Optional: the Mekanism: Tools integration adds affix loot entries, salvaging recipes and invader gear sets for its
+# material equipment. Declared even though nothing here needs the classes at compile time, because it is what makes
+# the relationship visible in the mod list and in launcher dependency views.
+[[dependencies.apotheosis_expansion]]
+modId="mekanismtools"
+type="optional"
+versionRange="[10.7.0,)"
+ordering="AFTER"
+side="BOTH"
+
+# Optional: the energy-gear block pins Mekanism's MekaSuit / MekaTool / atomic disassembler etc. to apotheosis:none, so
+# the [crafting] feature stops attaching durability-scaled affixes to gear that runs on energy and has no durability.
+[[dependencies.apotheosis_expansion]]
+modId="mekanism"
+type="optional"
+versionRange="[10.7.0,)"
+ordering="AFTER"
+side="BOTH"

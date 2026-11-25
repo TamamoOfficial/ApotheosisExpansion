@@ -41,10 +41,11 @@ Every feature can be toggled independently from the in-game config screen.
 
 ### Mod integration
 
-Adds Apotheosis Invaders for mobs from other mods. **No mod is a hard dependency** — when one is
+Adds content for other mods: mostly Apotheosis Invaders (mobs), plus Mekanism: Tools gear content
+(affix loot pools, salvaging recipes, gear sets). **No mod is a hard dependency** — when one is
 absent its whole group disappears.
 
-| Mod | Mobs | Notes |
+| Mod | Content | Notes |
 |---|---|---|
 | **Thermal** | Basalz / Blizz / Blitz | 7 entries across several biomes |
 | **Mekanism Additions** | Five baby mobs | Weight is 1/3 of the adult (1/4 for Wither Skeleton) |
@@ -84,6 +85,8 @@ absent its whole group disappears.
 **Optional** (the matching integration simply disappears when absent)
 
 - Thermal Series / Mekanism Additions / Ars Nouveau / AllTheModium
+- **Mekanism: Tools** — affix loot pools, salvaging recipes, invader gear sets
+- **Mekanism** (main mod) — energy-gear block (MekaSuit, MekaTool etc. stay out of crafted affixes)
 - Ancient Reforging — makes the first Ender Dragon use the Ancient rarity
 
 Drop the jar into `mods/`. Required on both client and server.
