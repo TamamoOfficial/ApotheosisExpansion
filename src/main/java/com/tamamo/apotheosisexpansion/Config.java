@@ -942,7 +942,7 @@ public final class Config {
         if (isModLoaded("mekanismadditions")) {
             b.comment(
                 "Mekanism Additions integration.",
-                "热力（Mekanism）附属 Additions 联动。",
+                "通用机械（Mekanism）附属 Additions 联动。",
                 "",
                 "The baby mobs live in the separate mekanismadditions module, not in the main Mekanism jar,",
                 "宝宝实体位于独立的 mekanismadditions 模块，不在 Mekanism 主包内，",
@@ -953,7 +953,7 @@ public final class Config {
             ENABLE_MEKANISM_INVADERS = b
                 .comment(
                     "Adds Apotheosis Invaders for the Mekanism Additions baby mobs.",
-                    "为热力（Mekanism）附属 Additions 的宝宝实体添加神化入侵者。",
+                    "为通用机械（Mekanism）附属 Additions 的宝宝实体添加神化入侵者。",
                     "",
                     "Covers baby_enderman, baby_skeleton, baby_stray, baby_bogged and baby_wither_skeleton.",
                     "覆盖末影人、骷髅、流髑、沼骸、凋灵骷髅五种宝宝。",
@@ -976,7 +976,7 @@ public final class Config {
         if (isModLoaded("mekanismtools")) {
             b.comment(
                 "Mekanism: Tools integration.",
-                "热力（Mekanism）工具模块联动。",
+                "通用机械（Mekanism）工具模块联动。",
                 "",
                 "mekanismtools is a separate mod from the mekanismadditions module above: it ships the",
                 "mekanismtools 与上面的 mekanismadditions 是两个独立模块：前者提供",
@@ -989,7 +989,7 @@ public final class Config {
             ENABLE_MEKANISM_TOOLS_AFFIXES = b
                 .comment(
                     "Adds the Mekanism: Tools equipment to Apotheosis' affix loot pool.",
-                    "把热力工具模块的装备加入神化的词缀战利品池。",
+                    "把通用机械工具模块的装备加入神化的词缀战利品池。",
                     "",
                     "Without this the sets are still affixed when a player crafts them (that is the [crafting]",
                     "不开启时，玩家自己打造这些装备仍会带词条（那是 [crafting] 段的功能），",
@@ -1008,7 +1008,7 @@ public final class Config {
             ENABLE_MEKANISM_TOOLS_SALVAGING = b
                 .comment(
                     "Adds salvaging table recipes for the Mekanism: Tools equipment.",
-                    "为热力工具模块的装备添加回收台配方。",
+                    "为通用机械工具模块的装备添加回收台配方。",
                     "",
                     "Yields follow the vanilla pattern Apotheosis already ships: armour returns 1-3 ingots,",
                     "产出沿用神化自带原版配方的比例：护甲 1~3 个锭，",
@@ -1024,7 +1024,7 @@ public final class Config {
             ENABLE_MEKANISM_TOOLS_GEAR_SETS = b
                 .comment(
                     "Lets Apotheosis invaders and bosses wear Mekanism: Tools equipment.",
-                    "允许神化入侵者与 BOSS 穿戴热力工具模块的装备。",
+                    "允许神化入侵者与 BOSS 穿戴通用机械工具模块的装备。",
                     "",
                     "Adds gear sets to every Apotheosis world tier and attaches them to the existing",
                     "为神化的每个世界层级添加套装，并挂到现有的",
@@ -1047,7 +1047,7 @@ public final class Config {
         if (isModLoaded("mekanism")) {
             b.comment(
                 "Mekanism energy equipment.",
-                "热力（Mekanism）本体能量装备。",
+                "通用机械（Mekanism）本体能量装备。",
                 "",
                 "MekaSuit, MekaTool, the atomic disassembler, jetpacks, free runners, the scuba gear and",
                 "机甲服、机甲工具、原子分解器、喷气背包、自由跑鞋、潜水装备、",
@@ -1062,7 +1062,7 @@ public final class Config {
             BLOCK_MEKANISM_ENERGY_GEAR_AFFIXES = b
                 .comment(
                     "Keeps Mekanism's energy-powered gear out of the crafted-affix roll.",
-                    "让热力本体的能量装备不参与打造词条。",
+                    "让通用机械本体的能量装备不参与打造词条。",
                     "",
                     "Implemented as an Apotheosis loot-category data map that pins each of these items to",
                     "实现方式是神化的战利品分类数据表，把这些物品钉成",

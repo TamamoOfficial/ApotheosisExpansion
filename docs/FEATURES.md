@@ -15,8 +15,8 @@
 - [三、Bug 修复：合并修复配方不重掷词条](#三bug-修复合并修复配方不重掷词条)
 - [四、宝石掉落调整](#四宝石掉落调整)
 - [五、Thermal 联动](#五thermal-联动)
-- [六、Mekanism Additions 联动](#六mekanism-additions-联动)
-- [七、Mekanism: Tools 联动](#七mekanism-tools-联动)
+- [六、Mekanism Additions（通用机械附属）联动](#六mekanism-additions通用机械附属联动)
+- [七、Mekanism: Tools（通用机械工具）联动](#七mekanism-tools通用机械工具联动)
 - [八、Ars Nouveau 联动](#八ars-nouveau-联动)
 - [九、AllTheModium 联动](#九allthemodium-联动)
 - [十、原版三大 BOSS](#十原版三大-boss)
@@ -138,7 +138,7 @@
 
 ---
 
-## 六、Mekanism Additions 联动
+## 六、Mekanism Additions（通用机械附属）联动
 
 为 Mekanism Additions 的宝宝实体添加神化入侵者。
 
@@ -173,10 +173,10 @@ Mekanism 在 v10（1.15+）之后把实体部分拆给了官方附属 `mekanisma
 
 ---
 
-## 七、Mekanism: Tools 联动
+## 七、Mekanism: Tools（通用机械工具）联动
 
-为热力工具模块（`mekanismtools`）的材质装备添加三项内容：**词缀战利品池**、**回收台配方**、
-**入侵者套装**。另外单独处理一个问题：热力本体的**能量装备**默认不参与打造词条。
+为通用机械工具模块（`mekanismtools`）的材质装备添加三项内容：**词缀战利品池**、**回收台配方**、
+**入侵者套装**。另外单独处理一个问题：通用机械本体的**能量装备**默认不参与打造词条。
 
 ### 模块与入口
 
@@ -187,7 +187,7 @@ Mekanism 在 v10（1.15+）之后把实体部分拆给了官方附属 `mekanisma
 
 ### 为什么"词缀兼容"几乎不需要写代码
 
-神化的 `LootCategory.forItem` 是按 NeoForge 的 `ItemAbility` 判定的。逐一核对热力工具模块
+神化的 `LootCategory.forItem` 是按 NeoForge 的 `ItemAbility` 判定的。逐一核对通用机械工具模块
 全部 72 件装备的继承链后，结论是**分类早就通了**：
 
 | 装备 | 继承自 | 自动判成 |
@@ -259,7 +259,7 @@ haven 280 / frontier 720 / ascent 940 / summit 1005 / pinnacle 545，
 
 镐斧并入工具组，与上游 `iron_tools` 把锄头也放进同一组的做法一致。
 
-青金石套产出 `minecraft:lapis_lazuli`（它没有对应的热力锭）；
+青金石套产出 `minecraft:lapis_lazuli`（它没有对应的通用机械锭）；
 原版材质镐斧各自产出对应的原版材料（木板 / 圆石 / 金锭 / 铁锭 / 钻石 / 下界合金碎片），
 六种产出互不相同，因此无法共用一条配方。
 
@@ -273,7 +273,7 @@ haven 280 / frontier 720 / ascent 940 / summit 1005 / pinnacle 545，
 复用现有标签意味着**一个入侵者文件都不用改**就能让它们穿上这些套装；
 若新造标签，则要改 60+ 个入侵者文件，diff 大得多且风险更高。
 
-只挂 `_melee`、不挂 `_ranged`：热力工具模块**没有弓**（电动弓在热力本体里，不在本次范围），
+只挂 `_melee`、不挂 `_ranged`：通用机械工具模块**没有弓**（电动弓在通用机械本体里，不在本次范围），
 挂进远程池会让远程入侵者抽到一把远程用不了的近战武器。
 
 盾不进套装（`offhands` 留空）：神化自己的近战套装也没有副手条目，怪物不会格挡，
@@ -284,7 +284,7 @@ haven 280 / frontier 720 / ascent 940 / summit 1005 / pinnacle 545，
 
 ### 四、能量装备拦截
 
-这是本次发现的一个**既有问题**。热力本体的机甲服、机甲工具、原子分解器、电动弓、喷气背包、
+这是本次发现的一个**既有问题**。通用机械本体的机甲服、机甲工具、原子分解器、电动弓、喷气背包、
 自由跑鞋、潜水装备、防化服、鞘翅、火焰喷射器、水壶，全都是 `ArmorItem` / `DiggerItem` 的子类，
 神化因此把它们识别成普通盔甲与工具。玩家打造它们时，本模组的 `[crafting]` 功能会给它们挂上
 **按耐久缩放**的词条——可这些装备走能量，根本没有耐久。
@@ -319,8 +319,8 @@ data/apotheosis/data_maps/item/loot_category_overrides.json
 
 | 检查 | 基准 |
 |---|---|
-| 物品 id 是否存在 | 热力工具模块 jar 的 lang 键（72 件） |
-| 锭类产出是否存在 | 热力本体 jar 的 lang 键 |
+| 物品 id 是否存在 | 通用机械工具模块 jar 的 lang 键（72 件） |
+| 锭类产出是否存在 | 通用机械本体 jar 的 lang 键 |
 | 条件类型是否注册 | 本模组 `ThermalCompat` 的注册表 |
 | 字段名是否正确 | `javap` 反汇编 Placebo / 神化的 codec |
 | 矩阵是否完整 | 生成器的材质 × 种类矩阵 |

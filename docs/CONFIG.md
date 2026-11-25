@@ -87,7 +87,7 @@
 | `compat/thermal` | `enable_basalz_invader` | 岩石人 |
 | `compat/thermal` | `enable_blizz_invader` | 暴雪人 |
 | `compat/thermal` | `enable_blitz_invader` | 狂风人 |
-| `compat/mekanism` | `enable_mekanism_invaders` | Mekanism 宝宝联动总开关 |
+| `compat/mekanism` | `enable_mekanism_invaders` | 通用机械宝宝联动总开关 |
 | `compat/mekanism` | `enable_baby_enderman_invader` | 末影人宝宝 |
 | `compat/mekanism` | `enable_baby_skeleton_invader` | 骷髅宝宝 |
 | `compat/mekanism` | `enable_baby_stray_invader` | 流髑宝宝 |
