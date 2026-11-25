@@ -133,6 +133,16 @@ public final class Config {
     public static BooleanValue ENABLE_ALLTHEMODIUM_INVADERS; /* not final: mod-gated sub-section */
     public static BooleanValue ENABLE_VANILLA_BOSSES; /* not final: a mod-gated sub-section may never assign it */
 
+    // ---- Mekanism: Tools integration (separate mod id from mekanismadditions above) ----
+
+    public static BooleanValue ENABLE_MEKANISM_TOOLS_AFFIXES; /* not final: mod-gated sub-section */
+    public static BooleanValue ENABLE_MEKANISM_TOOLS_SALVAGING; /* not final: mod-gated sub-section */
+    public static BooleanValue ENABLE_MEKANISM_TOOLS_GEAR_SETS; /* not final: mod-gated sub-section */
+
+    // ---- Mekanism (main mod) energy gear: excluded from this mod's crafted-affix roll ----
+
+    public static BooleanValue BLOCK_MEKANISM_ENERGY_GEAR_AFFIXES; /* not final: mod-gated sub-section */
+
     // ---- per-entity switches (the group toggles above are master switches) ----
 
     public static BooleanValue ENABLE_BASALZ_INVADER; /* not final: a mod-gated sub-section may never assign it */
@@ -962,6 +972,117 @@ public final class Config {
             b.pop(); // mekanism
         }
 
+        // ---- Mekanism: Tools (material gear: osmium / bronze / steel / lapis / glowstone / obsidian) ----
+        if (isModLoaded("mekanismtools")) {
+            b.comment(
+                "Mekanism: Tools integration.",
+                "热力（Mekanism）工具模块联动。",
+                "",
+                "mekanismtools is a separate mod from the mekanismadditions module above: it ships the",
+                "mekanismtools 与上面的 mekanismadditions 是两个独立模块：前者提供",
+                "material tool and armour sets (osmium, bronze, steel, lapis lazuli, refined glowstone,",
+                "按材质的工具与盔甲套装（锇、青铜、钢、青金石、强化荧石、",
+                "refined obsidian) plus the paxels. This sub-section only appears when it is installed.",
+                "强化黑曜石）以及镐斧。因此只有装了该模块时才会出现本子段。")
+                .translation(KEY + "compat.mekanism_tools")
+                .push("mekanism_tools");
+            ENABLE_MEKANISM_TOOLS_AFFIXES = b
+                .comment(
+                    "Adds the Mekanism: Tools equipment to Apotheosis' affix loot pool.",
+                    "把热力工具模块的装备加入神化的词缀战利品池。",
+                    "",
+                    "Without this the sets are still affixed when a player crafts them (that is the [crafting]",
+                    "不开启时，玩家自己打造这些装备仍会带词条（那是 [crafting] 段的功能），",
+                    "section), but they can never drop as affixed loot from chests or bosses.",
+                    "但它们永远不会作为带词条的箱子/BOSS 掉落物出现。",
+                    "",
+                    "Weights sit at 2 per item, so the sets stay visible without diluting the vanilla and",
+                    "权重定为每件 2，既能看见这批装备，又不会明显稀释原版与",
+                    "Twilight Forest entries that already fill these pools.",
+                    "暮色森林已有的条目。",
+                    "",
+                    "Takes effect on the next data reload (F3+T or rejoining a world).",
+                    "改动后需重载数据（F3+T 或重进存档）才会生效。")
+                .translation(KEY + "compat.mekanism_tools.enable_mekanism_tools_affixes")
+                .define("enable_mekanism_tools_affixes", true);
+            ENABLE_MEKANISM_TOOLS_SALVAGING = b
+                .comment(
+                    "Adds salvaging table recipes for the Mekanism: Tools equipment.",
+                    "为热力工具模块的装备添加回收台配方。",
+                    "",
+                    "Yields follow the vanilla pattern Apotheosis already ships: armour returns 1-3 ingots,",
+                    "产出沿用神化自带原版配方的比例：护甲 1~3 个锭，",
+                    "tools 0-1, paxels and shields 1-2. Damaged items yield proportionally less - that",
+                    "工具 0~1，镐斧与盾 1~2。耐久越低产出越少，这是",
+                    "scaling is Apotheosis' own, not something this mod adds.",
+                    "神化自身的机制，不是本模组加的。",
+                    "",
+                    "Takes effect on the next data reload (F3+T or rejoining a world).",
+                    "改动后需重载数据（F3+T 或重进存档）才会生效。")
+                .translation(KEY + "compat.mekanism_tools.enable_mekanism_tools_salvaging")
+                .define("enable_mekanism_tools_salvaging", true);
+            ENABLE_MEKANISM_TOOLS_GEAR_SETS = b
+                .comment(
+                    "Lets Apotheosis invaders and bosses wear Mekanism: Tools equipment.",
+                    "允许神化入侵者与 BOSS 穿戴热力工具模块的装备。",
+                    "",
+                    "Adds gear sets to every Apotheosis world tier and attaches them to the existing",
+                    "为神化的每个世界层级添加套装，并挂到现有的",
+                    "invader gear-set tags, so the mobs can pick these sets alongside the vanilla ones.",
+                    "入侵者套装标签上，使怪物能与原版套装一同抽取这些装备。",
+                    "",
+                    "The sets are only a candidate: Apotheosis still rolls one set per mob from the whole",
+                    "这些套装只是候选：神化仍会在该层级的全部套装中",
+                    "tier's pool, so the effect is a wider variety rather than every boss wearing osmium.",
+                    "为每只怪物抽一套，因此效果是装备种类更丰富，而不是每只 BOSS 都穿锇甲。",
+                    "",
+                    "Takes effect on the next data reload (F3+T or rejoining a world).",
+                    "改动后需重载数据（F3+T 或重进存档）才会生效。")
+                .translation(KEY + "compat.mekanism_tools.enable_mekanism_tools_gear_sets")
+                .define("enable_mekanism_tools_gear_sets", true);
+            b.pop(); // mekanism_tools
+        }
+
+        // ---- Mekanism (main mod): keep energy gear out of the crafted-affix roll ----
+        if (isModLoaded("mekanism")) {
+            b.comment(
+                "Mekanism energy equipment.",
+                "热力（Mekanism）本体能量装备。",
+                "",
+                "MekaSuit, MekaTool, the atomic disassembler, jetpacks, free runners, the scuba gear and",
+                "机甲服、机甲工具、原子分解器、喷气背包、自由跑鞋、潜水装备、",
+                "the hazmat suit are all ArmorItem/DiggerItem subclasses, so Apotheosis classifies them as",
+                "防化服都是 ArmorItem/DiggerItem 的子类，神化因此把它们识别为",
+                "regular armour and tools. Left alone, crafting one would attach affixes that scale off",
+                "普通盔甲与工具。不处理的话，打造时会挂上按耐久缩放的词条，",
+                "durability - on gear that runs on energy and has none.",
+                "而这些装备走能量而非耐久。")
+                .translation(KEY + "compat.mekanism_energy_gear")
+                .push("mekanism_energy_gear");
+            BLOCK_MEKANISM_ENERGY_GEAR_AFFIXES = b
+                .comment(
+                    "Keeps Mekanism's energy-powered gear out of the crafted-affix roll.",
+                    "让热力本体的能量装备不参与打造词条。",
+                    "",
+                    "Implemented as an Apotheosis loot-category data map that pins each of these items to",
+                    "实现方式是神化的战利品分类数据表，把这些物品钉成",
+                    "'apotheosis:none'. 'none' is the same category vanilla hoes and other non-equipment",
+                    "'apotheosis:none'。原版锄头等非装备物品也是这个分类，",
+                    "already use, so the result is exactly 'Apotheosis ignores this item'.",
+                    "所以效果就是「神化完全不处理这件物品」。",
+                    "",
+                    "Covers mekasuit_*, meka_tool, atomic_disassembler, electric_bow, jetpack(+_armored),",
+                    "覆盖 mekasuit_*、meka_tool、atomic_disassembler、electric_bow、jetpack(+_armored)、",
+                    "free_runners(+_armored), scuba_mask/tank, hazmat_*, hdpe_elytra, flamethrower, canteen.",
+                    "free_runners(+_armored)、scuba_mask/tank、hazmat_*、hdpe_elytra、flamethrower、canteen。",
+                    "",
+                    "This is a data map, so it needs a data reload (F3+T or rejoining a world).",
+                    "这是数据表，改动后需重载数据（F3+T 或重进存档）。")
+                .translation(KEY + "compat.mekanism_energy_gear.block_mekanism_energy_gear_affixes")
+                .define("block_mekanism_energy_gear_affixes", true);
+            b.pop(); // mekanism_energy_gear
+        }
+
         // ---- Ars Nouveau: the Wilden trio
         if (isModLoaded("ars_nouveau")) {
             b.comment(
@@ -1293,6 +1414,38 @@ public final class Config {
     public static boolean enableMekanismInvaders() {
         // Null when mekanismadditions is absent: its sub-section was not registered. Treat as off.
         return ENABLE_MEKANISM_INVADERS != null && ENABLE_MEKANISM_INVADERS.get();
+    }
+
+    /**
+     * Gates the Mekanism: Tools affix-loot entries.
+     * <p>
+     * Null when {@code mekanismtools} is absent, in which case the sub-section was never registered and the data
+     * files' {@code mod_loaded} condition has already removed them.
+     */
+    public static boolean enableMekanismToolsAffixes() {
+        return ENABLE_MEKANISM_TOOLS_AFFIXES != null && ENABLE_MEKANISM_TOOLS_AFFIXES.get();
+    }
+
+    /** Gates the Mekanism: Tools salvaging recipes. Null (treated as off) when the mod is absent. */
+    public static boolean enableMekanismToolsSalvaging() {
+        return ENABLE_MEKANISM_TOOLS_SALVAGING != null && ENABLE_MEKANISM_TOOLS_SALVAGING.get();
+    }
+
+    /** Gates the Mekanism: Tools invader gear sets. Null (treated as off) when the mod is absent. */
+    public static boolean enableMekanismToolsGearSets() {
+        return ENABLE_MEKANISM_TOOLS_GEAR_SETS != null && ENABLE_MEKANISM_TOOLS_GEAR_SETS.get();
+    }
+
+    /**
+     * Whether Mekanism's energy-powered gear is kept out of the crafted-affix roll.
+     * <p>
+     * Defaults to <b>true</b> when the key is missing: the sub-section only exists when {@code mekanism} is loaded, and
+     * a missing key there means an old config file. Excluding the gear is the safer of the two behaviours (attaching
+     * durability-scaled affixes to an item that has no durability is a visible bug), so absence fails closed rather
+     * than open.
+     */
+    public static boolean blockMekanismEnergyGearAffixes() {
+        return BLOCK_MEKANISM_ENERGY_GEAR_AFFIXES == null || BLOCK_MEKANISM_ENERGY_GEAR_AFFIXES.get();
     }
 
     /**

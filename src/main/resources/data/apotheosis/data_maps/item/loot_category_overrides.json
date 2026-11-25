@@ -1,0 +1,244 @@
+{
+    "values": {
+        "mekanism:mekasuit_helmet": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:mekasuit_bodyarmor": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:mekasuit_pants": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:mekasuit_boots": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:meka_tool": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:atomic_disassembler": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:electric_bow": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:jetpack": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:jetpack_armored": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:free_runners": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:free_runners_armored": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:scuba_mask": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:scuba_tank": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:hazmat_mask": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:hazmat_gown": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:hazmat_pants": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:hazmat_boots": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:hdpe_elytra": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:flamethrower": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        },
+        "mekanism:canteen": {
+            "neoforge:conditions": [
+                {
+                    "type": "neoforge:mod_loaded",
+                    "modid": "mekanism"
+                },
+                {
+                    "type": "apotheosis_expansion:mekanism_energy_gear_blocked"
+                }
+            ],
+            "value": "apotheosis:none"
+        }
+    }
+}

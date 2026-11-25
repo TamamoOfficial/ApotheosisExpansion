@@ -9,6 +9,7 @@
 ```bash
 node build/validate_invaders.js thermal
 node build/verify_readme.js
+node build/validate_mek_tools.js   # 需要 Mekanism 两个 jar
 ```
 
 | 脚本 | 检查内容 |
@@ -25,6 +26,7 @@ node build/verify_readme.js
 | `verify_gem_compendium.js` | 宝石图鉴：EMI 优先裁决、探测目标类真实存在、翻译键齐备、23 颗宝石规则核对 |
 | `verify_vanilla_bosses.js` | 原版三大 BOSS 的设定与风险点 |
 | `verify_piglich_gear.js` | 猪巫妖装备钩子的顺序与概率 |
+| `validate_mek_tools.js` | Mekanism: Tools 联动：物品 id / 条件 / codec 字段 / 矩阵完整性 / 数据表碰撞（需 Mekanism 两个 jar） |
 | `verify_repair_combine.js` | 合并修复：只有真实合并配方才继承，合并产物永不重掷（漏洞修复） |
 | `test_filter_predicate.js` | 刷怪笼过滤器的白名单行为 |
 | `verify_spawner_rune_tooltips.js` | 符文 tooltip：Apothic Spawners API 是否还在、配方是否仍五项全设、可选依赖隔离、缓存失效接线 |
@@ -70,6 +72,7 @@ node build/package.js     # 打包 build/classes + 资源 -> build/libs/
 | `MC_JAR` | NeoForge 的 `neoforge-*-merged.jar` | `verify_mob_cap.js`（要反汇编原版字节码） |
 | `JAVAP` | `javap` 可执行文件路径 | 依赖字节码的脚本 |
 | `APOTHIC_SPAWNERS_JAR` | Apothic Spawners 的 jar | `verify_spawner_rune_tooltips.js`（默认取 `libs/`） |
+| `MEKANISM_JAR` / `MEKANISM_TOOLS_JAR` | Mekanism 主包与 `-tools` 分类 jar | `validate_mek_tools.js`（默认取 `libs/` 或 Gradle 缓存） |
 
 **依赖 jar 从哪里来**：脚本按以下顺序查找，通常不需要设置任何变量：
 

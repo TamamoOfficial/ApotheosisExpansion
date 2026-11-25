@@ -16,15 +16,16 @@
 - [四、宝石掉落调整](#四宝石掉落调整)
 - [五、Thermal 联动](#五thermal-联动)
 - [六、Mekanism Additions 联动](#六mekanism-additions-联动)
-- [七、Ars Nouveau 联动](#七ars-nouveau-联动)
-- [八、AllTheModium 联动](#八allthemodium-联动)
-- [九、原版三大 BOSS](#九原版三大-boss)
-- [十、Bug 修复：BOSS 不锁定创造/旁观玩家](#十bug-修复boss-不锁定创造旁观玩家)
-- [十一、与神化刷怪笼的关系](#十一与神化刷怪笼的关系)
-- [十二、多人共享刷怪额度](#十二多人共享刷怪额度)
-- [十三、刷怪笼符文的-tooltip](#十三刷怪笼符文的-tooltip)
-- [十四、宝石图鉴（JEI/EMI）](#十四宝石图鉴jeiemi)
-- [十五、冒险：命名生物的两项保护](#十五冒险命名生物的两项保护)
+- [七、Mekanism: Tools 联动](#七mekanism-tools-联动)
+- [八、Ars Nouveau 联动](#八ars-nouveau-联动)
+- [九、AllTheModium 联动](#九allthemodium-联动)
+- [十、原版三大 BOSS](#十原版三大-boss)
+- [十一、Bug 修复：BOSS 不锁定创造/旁观玩家](#十一bug-修复boss-不锁定创造旁观玩家)
+- [十二、与神化刷怪笼的关系](#十二与神化刷怪笼的关系)
+- [十三、多人共享刷怪额度](#十三多人共享刷怪额度)
+- [十四、刷怪笼符文的 tooltip](#十四刷怪笼符文的-tooltip)
+- [十五、宝石图鉴（JEI/EMI）](#十五宝石图鉴jeiemi)
+- [十六、冒险：命名生物的两项保护](#十六冒险命名生物的两项保护)
 
 ---
 
@@ -172,7 +173,167 @@ Mekanism 在 v10（1.15+）之后把实体部分拆给了官方附属 `mekanisma
 
 ---
 
-## 七、Ars Nouveau 联动
+## 七、Mekanism: Tools 联动
+
+为热力工具模块（`mekanismtools`）的材质装备添加三项内容：**词缀战利品池**、**回收台配方**、
+**入侵者套装**。另外单独处理一个问题：热力本体的**能量装备**默认不参与打造词条。
+
+### 模块与入口
+
+`mekanismtools` 是独立模组，和第六节的 `mekanismadditions` 是两个不同的 mod id。
+所以三组数据全部带 `neoforge:mod_loaded: mekanismtools`，卸载后自动消失；
+能量装备那组带的是 `neoforge:mod_loaded: mekanism`。
+每个开关各有一个本模组的条件类型，改动后**需要重载数据**（F3+T 或重进存档）。
+
+### 为什么"词缀兼容"几乎不需要写代码
+
+神化的 `LootCategory.forItem` 是按 NeoForge 的 `ItemAbility` 判定的。逐一核对热力工具模块
+全部 72 件装备的继承链后，结论是**分类早就通了**：
+
+| 装备 | 继承自 | 自动判成 |
+|---|---|---|
+| 剑 | `SwordItem` | `melee_weapon` |
+| 斧 | `AxeItem` | `melee_weapon`（靠攻击力 > 1 命中） |
+| 镐 / 铲 | `PickaxeItem` / `ShovelItem` | `breaker` |
+| 镐斧（paxel） | `DiggerItem` | `breaker`（同时具备镐/铲/斧/剑能力，按优先级先命中它） |
+| 盾 | `ShieldItem` | `shield` |
+| 四件护甲 | `ArmorItem` | `helmet` / `chestplate` / `leggings` / `boots` |
+| **锄** | `HoeItem` | **`none`**（原版锄头也是这个分类） |
+
+也就是说：玩家自己打造这些装备，本模组的 `[crafting]` 功能**本来就会**给它们挂词条。
+真正缺的是**掉落**——它们不在 `apotheosis:affix_loot_entries` 里，
+永远不会作为带词条的箱子/BOSS 掉落物出现。
+
+锄头按约定跳过：神化本身没有锄头分类，强行加会引入一个原版装备也没有的分类。
+
+### 一、词缀战利品池
+
+一件物品一个文件（`AffixLootEntry` 的 codec 只放得下一个 `stack`），按材质分目录：
+
+```
+data/apotheosis/affix_loot_entries/mekanism_tools/
+├── lapis_lazuli/       10 件
+├── bronze/             10 件
+├── steel/              10 件
+├── osmium/             10 件
+├── refined_glowstone/  10 件
+├── refined_obsidian/   10 件
+└── vanilla_paxels/      6 件（木/石/金/铁/钻石/下界合金镐斧）
+```
+
+共 66 个条目。**权重定为 2**（每件、每档），这是有意克制：神化现有各档总权重是
+haven 280 / frontier 720 / ascent 940 / summit 1005 / pinnacle 545，
+每件加 2 是让这批装备可见，而不是把原版和暮色森林的条目稀释掉。
+
+材质分层按实际强度对标神化自带的原版条目：
+
+| 材质 | 档位 | 参照 |
+|---|---|---|
+| 青金石 | haven + frontier | 早期材质（耐久约 160） |
+| 青铜 | haven + frontier + ascent | 对标铁（耐久约 375） |
+| 钢 | frontier + ascent + summit | 略强于钻石（耐久 500） |
+| 锇 | ascent + summit + pinnacle | 对标钻石（耐久 1024） |
+| 强化荧石 | ascent + summit + pinnacle | 伤害高、耐久中等（1105） |
+| 强化黑曜石 | summit + pinnacle | 本模组最强（1200，伤害 +8） |
+
+### 二、回收台配方
+
+回收台是**纯配方驱动**的：`apotheosis:salvaging` 用 `input`（Ingredient）+ `outputs`（`min~max` 范围），
+产物数量还会按**剩余耐久**线性缩放（`SalvagingMenu.getSalvageCounts`），
+所以毁损严重的装备自动产出更少——这是神化自身机制，不是本模组加的。
+
+写法**照抄神化本体**：一条配方把一个类别里的所有物品放进同一个 `input` 数组，
+和上游的 `iron_armor.json`（四件铁甲一条）、`iron_tools.json`（五件铁工具一条）完全同构。
+共 24 条：6 种材质 × 3 个类别（护甲 / 工具 / 盾）+ 6 条原版材质镐斧。
+
+这个分组是必须的：神化返回**所有**匹配的配方并逐条相加，
+所以同一件物品绝不能出现在两条配方里，否则产物直接翻倍。
+
+产出比例沿用神化自带原版配方的口径（护甲 1~3、工具 0~1）：
+
+| 类别 | 组内物品 | 产出 | 数量 |
+|---|---|---|---|
+| 护甲 | 头盔 / 胸甲 / 护腿 / 靴 | 对应锭 | 1~3 |
+| 工具 | 剑 / 镐 / 斧 / 铲 / 镐斧 | 对应锭 | 0~1 |
+| 盾 | 盾 | 对应锭 | 1~2（配方要四块锭加一面盾） |
+
+镐斧并入工具组，与上游 `iron_tools` 把锄头也放进同一组的做法一致。
+
+青金石套产出 `minecraft:lapis_lazuli`（它没有对应的热力锭）；
+原版材质镐斧各自产出对应的原版材料（木板 / 圆石 / 金锭 / 铁锭 / 钻石 / 下界合金碎片），
+六种产出互不相同，因此无法共用一条配方。
+
+### 三、入侵者套装
+
+`GearSet` 没有"档位"字段，档位**由它所在的目录表达**（`gear_sets/` 下的层级目录），
+所以每种材质在每个适用档位各一个文件，共 16 个。
+
+关键设计：**复用神化已有的 `<tier>_melee` 标签**，而不是新造一个 `mekanism_melee` 标签。
+入侵者用标签声明自己接受哪些套装（如 `"#haven_melee"`），套装在自己的 `tags` 里声明加入哪些池子。
+复用现有标签意味着**一个入侵者文件都不用改**就能让它们穿上这些套装；
+若新造标签，则要改 60+ 个入侵者文件，diff 大得多且风险更高。
+
+只挂 `_melee`、不挂 `_ranged`：热力工具模块**没有弓**（电动弓在热力本体里，不在本次范围），
+挂进远程池会让远程入侵者抽到一把远程用不了的近战武器。
+
+盾不进套装（`offhands` 留空）：神化自己的近战套装也没有副手条目，怪物不会格挡，
+拿面盾只是碍眼。盾仍然可以掉落和回收。
+
+套装权重 30（现有套装在 5~80 之间）。效果是**装备种类更丰富**，
+而不是每只 BOSS 都穿锇甲——神化仍会在该档位的整个套装池里抽一套。
+
+### 四、能量装备拦截
+
+这是本次发现的一个**既有问题**。热力本体的机甲服、机甲工具、原子分解器、电动弓、喷气背包、
+自由跑鞋、潜水装备、防化服、鞘翅、火焰喷射器、水壶，全都是 `ArmorItem` / `DiggerItem` 的子类，
+神化因此把它们识别成普通盔甲与工具。玩家打造它们时，本模组的 `[crafting]` 功能会给它们挂上
+**按耐久缩放**的词条——可这些装备走能量，根本没有耐久。
+
+修法用的是神化自己的机制：**战利品分类数据表**把这些物品钉成 `apotheosis:none`
+（神化原版就用它把 `minecraft:shulker_shell` 钉成 none）。`none` 就是"神化完全不处理这件物品"。
+
+```
+data/apotheosis/data_maps/item/loot_category_overrides.json
+```
+
+两个容易写错的地方：
+
+1. 挂在 `minecraft:item` 注册表上，不是神化的 `loot_category` 注册表——数据表是"往某注册表的条目上挂值"，
+   这里挂的是物品，值是分类。所以目录是 `data_maps/item/`。
+2. 文件名必须是 `loot_category_overrides`，且命名空间必须是 `apotheosis`——
+   `DataMapLoader` 按文件 id 查数据表类型，换个命名空间会被当作"不存在的数据表类型"跳过。
+
+这不会覆盖神化自己那份内容：NeoForge 读取整个资源栈并合并，且这个数据表没有自定义合并器，
+**只有同一物品键**才会被后者覆盖。神化自带的 `minecraft:iron_sword` / `minecraft:shulker_shell`
+因此原样保留，校验脚本会断言两者键集合不相交。
+
+### 顺带修掉的一个漏点
+
+拦截排查时发现 `CraftedAffixRoller.applySocketsOnly` 有个漏：它在物品分类为 `none` 时仍会走到
+"稀有度没给槽位就用配置范围兜底"的分支，于是 `[crafting] allow_non_equipment = true` 时，
+方块和能量装备能被打上宝石槽。现在两条路径都统一为"分类 none 就完全不处理"。
+
+### 校验怎么做的
+
+`node build/validate_mek_tools.js` 拿**真实 jar** 当基准，而不是自己跟自己比：
+
+| 检查 | 基准 |
+|---|---|
+| 物品 id 是否存在 | 热力工具模块 jar 的 lang 键（72 件） |
+| 锭类产出是否存在 | 热力本体 jar 的 lang 键 |
+| 条件类型是否注册 | 本模组 `ThermalCompat` 的注册表 |
+| 字段名是否正确 | `javap` 反汇编 Placebo / 神化的 codec |
+| 矩阵是否完整 | 生成器的材质 × 种类矩阵 |
+| 回收输入是否重复 | 重复会导致产物翻倍 |
+| 数据表是否碰撞 | 神化 jar 里真实的同名文件 |
+| 生成结果是否最新 | 重跑生成器比对 |
+
+数据本身由 `node build/gen_mek_tools.js` 产出（107 个文件：66 条战利品 + 24 条回收 + 16 个套装 + 1 张数据表），矩阵在脚本里是单一事实来源，
+避免出现"战利品池有、回收配方漏了"这种不一致。
+
+---
+
+## 八、Ars Nouveau 联动
 
 为新生魔艺的荒野（Wilden）三兄弟添加神化入侵者。
 
@@ -196,7 +357,7 @@ Mekanism 在 v10（1.15+）之后把实体部分拆给了官方附属 `mekanisma
 
 ---
 
-## 八、AllTheModium 联动
+## 九、AllTheModium 联动
 
 为猪巫妖（Piglich）添加神化入侵者。
 
@@ -255,7 +416,7 @@ private void maybeWearArmor(EquipmentSlot slot, ItemStack stack) {
 
 ---
 
-## 九、原版三大 BOSS
+## 十、原版三大 BOSS
 
 把**坚守者、凋灵、末影龙**变成神化 BOSS。
 
@@ -328,7 +489,7 @@ if (fight.hasPreviouslyKilledDragon()) {
 
 ---
 
-## 十、Bug 修复：BOSS 不锁定创造/旁观玩家
+## 十一、Bug 修复：BOSS 不锁定创造/旁观玩家
 
 ### 现象
 
@@ -378,7 +539,7 @@ NeoForge 1.21.1 生产运行时使用官方类名，因此注解里写 `net.mine
 
 ---
 
-## 十一、与神化刷怪笼的关系
+## 十二、与神化刷怪笼的关系
 
 ### 神化自己的刷怪笼怎么工作
 
@@ -419,7 +580,7 @@ data/apotheosis/apothic_invaders/
 
 ---
 
-## 十二、多人共享刷怪额度
+## 十三、多人共享刷怪额度
 
 ### 原版上限是怎么算的
 
@@ -630,7 +791,7 @@ return loader.getResource(resource) != null;
 
 ---
 
-## 十三、刷怪笼符文的 tooltip
+## 十四、刷怪笼符文的 tooltip
 
 当前版本的神化把刷怪笼的强化手段从「用一堆材料去操作调节器」换成了**符文**：每枚升级符文
 （拓荒者 / 旅人 / 登山者 / 雷霆）本质上是一张把刷怪笼五项数值直接**设**为某个值的配方。
@@ -715,7 +876,7 @@ if (FMLEnvironment.dist.isClient() && SpawnerRuneIntegration.isAvailable()) {
 
 ---
 
-## 十四、宝石图鉴（JEI/EMI）
+## 十五、宝石图鉴（JEI/EMI）
 
 神化的帕秋莉手册只说宝石「可能在箱子战利品中找到，也可能在杀怪时少量找到」——**哪种宝石掉在哪个
 维度、哪个世界层级才会开始掉、每个纯度的增幅到底是多少**，这些规则只存在于数据文件里，游戏内没有任何
@@ -772,7 +933,7 @@ EMI 自带 JEMI 桥接，会把 JEI 插件的页面**原样导入**自己的索�
 
 ---
 
-## 十五、冒险：命名生物的两项保护
+## 十六、冒险：命名生物的两项保护
 
 `[adventure]` 段下的两个开关解决同一类问题：**玩家亲自用命名牌命名的生物，不该被原版的
 全局规则悄悄删掉/换掉**。两者共用同一个判定——实体标签 `apotheosis_expansion.named`，

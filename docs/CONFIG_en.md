@@ -94,6 +94,10 @@ sub-section's values are gone.
 | `compat/mekanism` | `enable_baby_stray_invader` | Baby Stray |
 | `compat/mekanism` | `enable_baby_bogged_invader` | Baby Bogged |
 | `compat/mekanism` | `enable_baby_wither_skeleton_invader` | Baby Wither Skeleton |
+| `compat/mekanism_tools` | `enable_mekanism_tools_affixes` | Tools gear joins the affix loot pools |
+| `compat/mekanism_tools` | `enable_mekanism_tools_salvaging` | Salvaging recipes for Tools gear |
+| `compat/mekanism_tools` | `enable_mekanism_tools_gear_sets` | Invaders wear Tools sets |
+| `compat/mekanism_energy_gear` | `block_mekanism_energy_gear_affixes` | Keep energy gear out of crafted affixes |
 | `compat/ars_nouveau` | `enable_ars_nouveau_invaders` | Ars Nouveau Wilden, group switch |
 | `compat/ars_nouveau` | `enable_wilden_hunter_invader` | Wilden Hunter |
 | `compat/ars_nouveau` | `enable_wilden_stalker_invader` | Wilden Stalker |
@@ -159,7 +163,7 @@ Three constraints, all of which must hold:
 ./gradlew build
 ```
 
-Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.1.1.jar`
+Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.2.0.jar`
 
 **Dependencies**: Apotheosis / Placebo / Apothic Attributes resolve from
 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/):

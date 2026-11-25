@@ -124,6 +124,9 @@ public class ApotheosisExpansion {
             Config.spawnLanesRealPlayersOnly());
         LOGGER.info("[ApotheosisExpansion] Per-entity invader switches: {}",
             Config.invaderEntityIds().stream().filter(Config::isEntityInvaderEnabled).sorted().toList());
+        LOGGER.info("[ApotheosisExpansion] Mekanism: Tools integration: affixes={}, salvaging={}, gear_sets={}; energy gear blocked={}",
+            Config.enableMekanismToolsAffixes(), Config.enableMekanismToolsSalvaging(),
+            Config.enableMekanismToolsGearSets(), Config.blockMekanismEnergyGearAffixes());
 
         // Applied on load AND on reload. Doing it only on reload left debug_mob_cap= true in the file doing nothing
         // until the user happened to change something, which is exactly the "my setting is ignored" report this is

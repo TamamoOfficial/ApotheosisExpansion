@@ -50,6 +50,7 @@ absent its whole group disappears.
 | **Mekanism Additions** | Five baby mobs | Weight is 1/3 of the adult (1/4 for Wither Skeleton) |
 | **Ars Nouveau** | Wilden Hunter / Stalker / Guardian | Spawned by Wilden Den structures |
 | **AllTheModium** | Piglich | Ancient Pyramid; also restores its random ATM gear |
+| **Mekanism: Tools** | Material gear (not mobs) | Affix loot pools + salvaging recipes + invader gear sets |
 
 ### Vanilla bosses
 
@@ -108,7 +109,7 @@ exception is the invader switches, which feed data-pack conditions and need a da
 ./gradlew build
 ```
 
-Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.1.1.jar`
+Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.2.0.jar`
 
 Dependencies are downloaded by Gradle from
 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/), so **a fresh clone

@@ -158,5 +158,17 @@
     "text.apotheosis_expansion.gem_compendium.drops_from": "Drops from:",
     "text.apotheosis_expansion.gem_compendium.no_tiers": "Not rolled at any world tier",
     "text.apotheosis_expansion.gem_compendium.stage_gate": "Also gated by game stages",
-    "text.apotheosis_expansion.gem_compendium.tiers": "World tiers: %s"
+    "text.apotheosis_expansion.gem_compendium.tiers": "World tiers: %s",
+    "apotheosis_expansion.configuration.compat.mekanism_tools": "Mekanism: Tools",
+    "apotheosis_expansion.configuration.compat.mekanism_tools.tooltip": "Mekanism: Tools integration settings (the per-material tool and armour sets).",
+    "apotheosis_expansion.configuration.compat.mekanism_tools.enable_mekanism_tools_affixes": "Mekanism: Tools Affix Loot",
+    "apotheosis_expansion.configuration.compat.mekanism_tools.enable_mekanism_tools_affixes.tooltip": "Adds the Mekanism: Tools equipment to Apotheosis affix loot pools. Without this the sets are still affixed when crafted, but never drop as affixed loot. Requires a data reload (F3+T).",
+    "apotheosis_expansion.configuration.compat.mekanism_tools.enable_mekanism_tools_salvaging": "Mekanism: Tools Salvaging",
+    "apotheosis_expansion.configuration.compat.mekanism_tools.enable_mekanism_tools_salvaging.tooltip": "Adds salvaging table recipes: armour 1-3 ingots, tools 0-1, paxels and shields 1-2. Damaged items yield less (Apotheosis mechanics). Requires a data reload (F3+T).",
+    "apotheosis_expansion.configuration.compat.mekanism_tools.enable_mekanism_tools_gear_sets": "Mekanism: Tools Invader Gear",
+    "apotheosis_expansion.configuration.compat.mekanism_tools.enable_mekanism_tools_gear_sets.tooltip": "Lets Apotheosis invaders wear Mekanism: Tools sets. Adds variety rather than equipping every boss the same way. Requires a data reload (F3+T).",
+    "apotheosis_expansion.configuration.compat.mekanism_energy_gear": "Mekanism Energy Gear",
+    "apotheosis_expansion.configuration.compat.mekanism_energy_gear.tooltip": "Affix settings for Mekanism energy-powered gear.",
+    "apotheosis_expansion.configuration.compat.mekanism_energy_gear.block_mekanism_energy_gear_affixes": "Exclude Energy Gear From Affixes",
+    "apotheosis_expansion.configuration.compat.mekanism_energy_gear.block_mekanism_energy_gear_affixes.tooltip": "Keeps Mekanism energy gear (MekaSuit, MekaTool, atomic disassembler, electric bow, jetpacks, free runners, scuba gear, hazmat suit, elytra, flamethrower, canteen) out of the crafted-affix roll - they run on energy and have no durability to scale from. Requires a data reload (F3+T)."
 }

@@ -93,6 +93,10 @@
 | `compat/mekanism` | `enable_baby_stray_invader` | 流髑宝宝 |
 | `compat/mekanism` | `enable_baby_bogged_invader` | 沼骸宝宝 |
 | `compat/mekanism` | `enable_baby_wither_skeleton_invader` | 凋灵骷髅宝宝 |
+| `compat/mekanism_tools` | `enable_mekanism_tools_affixes` | 工具模块装备进词缀战利品池 |
+| `compat/mekanism_tools` | `enable_mekanism_tools_salvaging` | 工具模块装备的回收台配方 |
+| `compat/mekanism_tools` | `enable_mekanism_tools_gear_sets` | 入侵者穿戴工具模块套装 |
+| `compat/mekanism_energy_gear` | `block_mekanism_energy_gear_affixes` | 能量装备不参与打造词条 |
 | `compat/ars_nouveau` | `enable_ars_nouveau_invaders` | 新生魔艺荒野联动总开关 |
 | `compat/ars_nouveau` | `enable_wilden_hunter_invader` | 荒野猎手 |
 | `compat/ars_nouveau` | `enable_wilden_stalker_invader` | 荒野伏击者 |
@@ -156,7 +160,7 @@
 ./gradlew build
 ```
 
-产物在 `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.1.1.jar`。
+产物在 `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.2.0.jar`。
 
 **依赖说明**：Apotheosis / Placebo / Apothic Attributes 从
 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/) 解析：

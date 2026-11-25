@@ -1,0 +1,24 @@
+{
+    "neoforge:conditions": [
+        {
+            "type": "neoforge:mod_loaded",
+            "modid": "mekanismtools"
+        },
+        {
+            "type": "apotheosis_expansion:mekanism_tools_affixes_enabled"
+        }
+    ],
+    "type": "apotheosis:affix_loot_entry",
+    "stack": {
+        "count": 1,
+        "id": "mekanismtools:iron_paxel"
+    },
+    "weights": {
+        "frontier": {
+            "weight": 2
+        },
+        "ascent": {
+            "weight": 2
+        }
+    }
+}

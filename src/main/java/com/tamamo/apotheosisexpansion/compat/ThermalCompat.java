@@ -63,6 +63,22 @@ public final class ThermalCompat {
     public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<EntityInvaderEnabled>> ENTITY_INVADER_ENABLED =
         CONDITION_CODECS.register("entity_invader_enabled", () -> EntityInvaderEnabled.CODEC);
 
+    /** {@code {"type": "apotheosis_expansion:mekanism_tools_affixes_enabled"}} */
+    public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<ConfigConditions.MekanismToolsAffixesEnabled>> MEKANISM_TOOLS_AFFIXES_ENABLED =
+        CONDITION_CODECS.register("mekanism_tools_affixes_enabled", () -> ConfigConditions.MEKANISM_TOOLS_AFFIXES);
+
+    /** {@code {"type": "apotheosis_expansion:mekanism_tools_salvaging_enabled"}} */
+    public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<ConfigConditions.MekanismToolsSalvagingEnabled>> MEKANISM_TOOLS_SALVAGING_ENABLED =
+        CONDITION_CODECS.register("mekanism_tools_salvaging_enabled", () -> ConfigConditions.MEKANISM_TOOLS_SALVAGING);
+
+    /** {@code {"type": "apotheosis_expansion:mekanism_tools_gear_sets_enabled"}} */
+    public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<ConfigConditions.MekanismToolsGearSetsEnabled>> MEKANISM_TOOLS_GEAR_SETS_ENABLED =
+        CONDITION_CODECS.register("mekanism_tools_gear_sets_enabled", () -> ConfigConditions.MEKANISM_TOOLS_GEAR_SETS);
+
+    /** {@code {"type": "apotheosis_expansion:mekanism_energy_gear_blocked"}} */
+    public static final DeferredHolder<MapCodec<? extends ICondition>, MapCodec<ConfigConditions.MekanismEnergyGearBlocked>> MEKANISM_ENERGY_GEAR_BLOCKED =
+        CONDITION_CODECS.register("mekanism_energy_gear_blocked", () -> ConfigConditions.MEKANISM_ENERGY_GEAR_BLOCKED);
+
     private ThermalCompat() {}
 
     public static void register(IEventBus modBus) {

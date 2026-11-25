@@ -48,6 +48,7 @@
 | **Mekanism Additions** | 五种宝宝 | 权重为成年体的 1/3（凋灵骷髅 1/4） |
 | **Ars Nouveau** | 荒野猎手 / 伏击者 / 守卫者 | 荒野巢穴结构刷怪 |
 | **AllTheModium** | 猪巫妖 | 远古金字塔结构，并补回随机 ATM 装备 |
+| **Mekanism: Tools** | 材质装备（非实体） | 词缀战利品池 + 回收台配方 + 入侵者套装 |
 
 ### 原版 BOSS
 
@@ -106,7 +107,7 @@
 ./gradlew build
 ```
 
-产物：`build/libs/ApotheosisExpansion-1.21.1-neoforge-1.1.1.jar`
+产物：`build/libs/ApotheosisExpansion-1.21.1-neoforge-1.2.0.jar`
 
 依赖由 Gradle 自动从 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/) 下载，
 **克隆后无需手动准备任何 jar**。开发机的 Gradle 因 `native-platform.dll` 无法启动，实际用 `javac` 直接编译，

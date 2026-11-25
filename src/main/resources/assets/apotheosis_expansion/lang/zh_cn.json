@@ -158,5 +158,17 @@
     "text.apotheosis_expansion.gem_compendium.drops_from": "掉落来源：",
     "text.apotheosis_expansion.gem_compendium.no_tiers": "不在任何世界层级掉落",
     "text.apotheosis_expansion.gem_compendium.stage_gate": "另受游戏阶段限制",
-    "text.apotheosis_expansion.gem_compendium.tiers": "世界层级：%s"
+    "text.apotheosis_expansion.gem_compendium.tiers": "世界层级：%s",
+    "apotheosis_expansion.configuration.compat.mekanism_tools": "热力(Mekanism)工具联动",
+    "apotheosis_expansion.configuration.compat.mekanism_tools.tooltip": "热力工具模块（按材质的工具与盔甲套装）联动的设置。",
+    "apotheosis_expansion.configuration.compat.mekanism_tools.enable_mekanism_tools_affixes": "热力工具词缀掉落",
+    "apotheosis_expansion.configuration.compat.mekanism_tools.enable_mekanism_tools_affixes.tooltip": "把热力工具模块的装备加入神化的词缀战利品池。不开启时玩家自己打造仍会带词条，但这些装备不会作为带词条的箱子/BOSS 掉落出现。切换后需重载数据（F3+T）才会生效。",
+    "apotheosis_expansion.configuration.compat.mekanism_tools.enable_mekanism_tools_salvaging": "热力工具回收配方",
+    "apotheosis_expansion.configuration.compat.mekanism_tools.enable_mekanism_tools_salvaging.tooltip": "为热力工具模块的装备添加回收台配方：护甲 1~3 锭、工具 0~1、镐斧与盾 1~2。耐久越低产出越少（神化自身机制）。切换后需重载数据（F3+T）才会生效。",
+    "apotheosis_expansion.configuration.compat.mekanism_tools.enable_mekanism_tools_gear_sets": "热力工具入侵者装备",
+    "apotheosis_expansion.configuration.compat.mekanism_tools.enable_mekanism_tools_gear_sets.tooltip": "允许神化入侵者与 BOSS 穿戴热力工具模块的套装。效果是装备种类更丰富，而不是每只 BOSS 都穿锇甲。切换后需重载数据（F3+T）才会生效。",
+    "apotheosis_expansion.configuration.compat.mekanism_energy_gear": "热力(Mekanism)能量装备",
+    "apotheosis_expansion.configuration.compat.mekanism_energy_gear.tooltip": "机甲服、机甲工具等能量装备的词条设置。",
+    "apotheosis_expansion.configuration.compat.mekanism_energy_gear.block_mekanism_energy_gear_affixes": "能量装备不参与词条",
+    "apotheosis_expansion.configuration.compat.mekanism_energy_gear.block_mekanism_energy_gear_affixes.tooltip": "让热力本体的能量装备（机甲服、机甲工具、原子分解器、电动弓、喷气背包、自由跑鞋、潜水装备、防化服、鞘翅、火焰喷射器、水壶）不参与打造词条。这些装备走能量而非耐久，挂上按耐久缩放的词条没有意义。切换后需重载数据（F3+T）才会生效。"
 }

@@ -17,14 +17,16 @@ For a quick overview of what the mod does, see the [README](../README_en.md).
 - [4. Gem drop tuning](#4-gem-drop-tuning)
 - [5. Thermal integration](#5-thermal-integration)
 - [6. Mekanism Additions integration](#6-mekanism-additions-integration)
-- [7. Ars Nouveau integration](#7-ars-nouveau-integration)
-- [8. AllTheModium integration](#8-allthemodium-integration)
-- [9. Vanilla bosses](#9-vanilla-bosses)
-- [10. Fix: bosses no longer target creative/spectator players](#10-fix-bosses-no-longer-target-creativespectator-players)
-- [11. Interaction with Apotheosis boss spawners](#11-interaction-with-apotheosis-boss-spawners)
-- [12. Shared monster budget for grouped players](#12-shared-monster-budget-for-grouped-players)
-- [13. Spawner rune tooltips](#13-spawner-rune-tooltips)
-- [14. Gem compendium (JEI/EMI)](#14-gem-compendium-jeiemi)
+- [7. Mekanism: Tools integration](#7-mekanism-tools-integration)
+- [8. Ars Nouveau integration](#8-ars-nouveau-integration)
+- [9. AllTheModium integration](#9-allthemodium-integration)
+- [10. Vanilla bosses](#10-vanilla-bosses)
+- [11. Fix: bosses no longer target creative/spectator players](#11-fix-bosses-no-longer-target-creativespectator-players)
+- [12. Interaction with Apotheosis boss spawners](#12-interaction-with-apotheosis-boss-spawners)
+- [13. Shared monster budget for grouped players](#13-shared-monster-budget-for-grouped-players)
+- [14. Spawner rune tooltips](#14-spawner-rune-tooltips)
+- [15. Gem compendium (JEI/EMI)](#15-gem-compendium-jeiemi)
+- [16. Adventure: two protections for player-named mobs](#16-adventure-two-protections-for-player-named-mobs)
 
 ---
 
@@ -181,7 +183,178 @@ and a plain data file works.
 
 ---
 
-## 7. Ars Nouveau integration
+## 7. Mekanism: Tools integration
+
+Three pieces of content for the material gear in `mekanismtools`: **affix loot pools**, **salvaging
+recipes** and **invader gear sets**. Plus a separate fix: Mekanism's own **energy gear** no longer receives
+crafted affixes by default.
+
+### The module, and how it is gated
+
+`mekanismtools` is a separate mod from the `mekanismadditions` module in section 6 - a different mod id.
+All three groups therefore carry `neoforge:mod_loaded: mekanismtools` and vanish when it is absent; the
+energy-gear group carries `neoforge:mod_loaded: mekanism` instead. Each group has its own condition type in
+this mod, and changing one **needs a data reload** (F3+T or rejoining a world).
+
+### Why "affix compatibility" needed almost no code
+
+Apotheosis resolves `LootCategory.forItem` through NeoForge's `ItemAbility`. Walking the class hierarchy of
+all 72 items in Mekanism: Tools shows the categories were **already working**:
+
+| Item | Extends | Resolves to |
+|---|---|---|
+| Sword | `SwordItem` | `melee_weapon` |
+| Axe | `AxeItem` | `melee_weapon` (via attack damage > 1) |
+| Pickaxe / shovel | `PickaxeItem` / `ShovelItem` | `breaker` |
+| Paxel | `DiggerItem` | `breaker` (has pickaxe/shovel/axe/sword abilities; highest priority match) |
+| Shield | `ShieldItem` | `shield` |
+| The four armour pieces | `ArmorItem` | `helmet` / `chestplate` / `leggings` / `boots` |
+| **Hoe** | `HoeItem` | **`none`** (vanilla hoes too) |
+
+So a player crafting these items **already** received affixes from the `[crafting]` feature. What was
+actually missing is **loot**: the sets are not in `apotheosis:affix_loot_entries`, so they can never drop as
+affixed loot from chests or bosses.
+
+Hoes are skipped by agreement: Apotheosis has no hoe category at all, and inventing one would create a
+category no vanilla item uses.
+
+### 1. Affix loot pools
+
+One file per item (`AffixLootEntry`'s codec holds a single `stack`), grouped into per-material folders:
+
+```
+data/apotheosis/affix_loot_entries/mekanism_tools/
+├── lapis_lazuli/      10 items
+├── bronze/            10 items
+├── steel/             10 items
+├── osmium/            10 items
+├── refined_glowstone/ 10 items
+├── refined_obsidian/  10 items
+└── vanilla_paxels/     6 items (wood/stone/gold/iron/diamond/netherite)
+```
+
+66 entries in total. The **weight is 2** per item per tier, deliberately restrained: the existing tiers
+total haven 280 / frontier 720 / ascent 940 / summit 1005 / pinnacle 545, so +2 per item keeps the sets
+visible without diluting the vanilla and Twilight Forest entries.
+
+Tiers follow the material's real power level, benchmarked against the vanilla entries Apotheosis ships:
+
+| Material | Tiers | Reference |
+|---|---|---|
+| Lapis Lazuli | haven + frontier | early material (~160 durability) |
+| Bronze | haven + frontier + ascent | iron-equivalent (~375) |
+| Steel | frontier + ascent + summit | slightly above diamond (500) |
+| Osmium | ascent + summit + pinnacle | diamond-equivalent (1024) |
+| Refined Glowstone | ascent + summit + pinnacle | high damage, mid durability (1105) |
+| Refined Obsidian | summit + pinnacle | the set's strongest (1200, +8 damage) |
+
+### 2. Salvaging recipes
+
+The salvaging table is **purely recipe driven**: `apotheosis:salvaging` takes an `input` Ingredient and a
+list of `outputs` with `min~max` ranges. The yield is then scaled by the item's **remaining durability**
+(`SalvagingMenu.getSalvageCounts`), so a heavily damaged item simply yields less - that is Apotheosis'
+own mechanic, not something this mod adds.
+
+The shape is **copied from Apotheosis itself**: one recipe puts every item of a category into a single
+`input` array, exactly like upstream's `iron_armor` (all four iron pieces in one recipe) and `iron_tools`
+(all five iron tools in one recipe). 24 recipes in total: six materials x three categories (armour / tools /
+shield), plus six vanilla-material paxels.
+
+The grouping is mandatory: Apotheosis returns **every** matching recipe and sums them, so one item must never
+appear in two recipes or its yield doubles.
+
+Yields follow the ratios Apotheosis already ships for vanilla (armour 1-3, tools 0-1):
+
+| Category | Items in the group | Output | Count |
+|---|---|---|---|
+| Armour | helmet / chestplate / leggings / boots | matching ingot | 1-3 |
+| Tools | sword / pickaxe / axe / shovel / paxel | matching ingot | 0-1 |
+| Shield | shield | matching ingot | 1-2 (costs four ingots plus a shield) |
+
+The paxel sits in the tools group, mirroring upstream's `iron_tools`, which also puts the hoe in the same
+group as the rest.
+
+The lapis set returns `minecraft:lapis_lazuli` (there is no Mekanism lapis ingot); the six vanilla-material
+paxels each return their own vanilla material (planks / cobblestone / gold / iron / diamond / netherite scrap),
+which is exactly why they cannot share a recipe.
+
+### 3. Invader gear sets
+
+`GearSet` has no tier field - the tier **is the directory it lives in** (a subfolder of `gear_sets`) - so
+each material gets one file per applicable tier, 16 in total.
+
+The key design decision: **reuse the existing `<tier>_melee` tags** rather than inventing a
+`mekanism_melee` tag. Invaders declare which sets they accept by tag (`"#haven_melee"`), and a set joins a
+pool by listing it in its own `tags`. Reusing the existing tags means **not a single invader file changes**;
+a new tag would mean editing 60+ invader files - a much larger and riskier diff for the same result.
+
+Melee only, never `_ranged`: Mekanism: Tools ships **no bow** (the electric bow lives in the main Mekanism
+mod, out of scope here), so joining a ranged pool would hand a ranged invader a melee weapon it cannot use
+at range.
+
+Shields are not worn (empty `offhands`): Apotheosis' own melee sets have no offhand entries, mobs cannot
+block, and a shield in hand is pure clutter. Shields still drop and still salvage.
+
+Set weight is 30 (existing sets sit between 5 and 80). The effect is **more variety**, not every boss
+wearing osmium - Apotheosis still rolls one set per mob from the tier's whole pool.
+
+### 4. The energy-gear block
+
+This uncovered a **pre-existing problem**. Mekanism's MekaSuit, MekaTool, atomic disassembler, electric bow,
+jetpacks, free runners, scuba gear, hazmat suit, elytra, flamethrower and canteen are all `ArmorItem` /
+`DiggerItem` subclasses, so Apotheosis classifies them as ordinary armour and tools. Crafting one attached
+**durability-scaled** affixes from the `[crafting]` feature - on gear that runs on energy and has no
+durability at all.
+
+The fix is Apotheosis' own mechanism: a **loot-category data map** pinning these items to `apotheosis:none`
+- exactly what Apotheosis already does for `minecraft:shulker_shell`. `none` means "Apotheosis does not
+touch this item".
+
+```
+data/apotheosis/data_maps/item/loot_category_overrides.json
+```
+
+Two easy mistakes, both avoided:
+
+1. It attaches to the `minecraft:item` registry, not Apotheosis' `loot_category` registry. A data map
+   attaches a value to entries of a registry; here the entries are items and the value is the category. The
+   folder is therefore `data_maps/item/`.
+2. The file must be named `loot_category_overrides` in the `apotheosis` namespace. `DataMapLoader` resolves
+   the data map type by file id, so any other namespace is logged as "non-existent data map type" and skipped.
+
+This does not overwrite Apotheosis' own file: NeoForge reads the whole resource stack and merges, and this
+data map has no custom merger, so only the **same item key** is overridden. Apotheosis' own
+`minecraft:iron_sword` / `minecraft:shulker_shell` survive untouched, and the validator asserts the two key
+sets stay disjoint.
+
+### One leak found and fixed on the way
+
+The block exposed a hole in `CraftedAffixRoller.applySocketsOnly`: when the item's category was `none` it
+still fell through to the "rarity gave no sockets, use the configured range" fallback - so with
+`[crafting] allow_non_equipment = true`, blocks and energy gear could receive gem sockets. Both paths now
+agree that a `none` category means untouched.
+
+### How it is validated
+
+`node build/validate_mek_tools.js` checks against **real jars**, never against itself:
+
+| Check | Ground truth |
+|---|---|
+| Item ids exist | the Mekanism: Tools jar's lang keys (72 items) |
+| Ingot outputs exist | the main Mekanism jar's lang keys |
+| Conditions are registered | this mod's `ThermalCompat` registry |
+| Field names are right | `javap` of the Placebo / Apotheosis codecs |
+| The matrix is complete | the generator's material x kind matrix |
+| No duplicate salvage inputs | a duplicate would double the yield |
+| The data map does not collide | the real file inside the Apotheosis jar |
+| The output is current | re-running the generator and diffing |
+
+The data itself comes from `node build/gen_mek_tools.js` (107 files: 66 loot entries, 24 salvaging recipes, 16 gear sets, 1 data map); the matrix lives in that script as the
+single source of truth, so "in the loot pool but missing from salvaging" cannot happen unnoticed.
+
+---
+
+## 8. Ars Nouveau integration
 
 Adds Apotheosis Invaders for the three Wilden mobs.
 
@@ -207,7 +380,7 @@ chance to 0.0** — listing it would mean never firing. The entries therefore us
 
 ---
 
-## 8. AllTheModium integration
+## 9. AllTheModium integration
 
 Adds an Apotheosis Invader for the Piglich.
 
@@ -267,7 +440,7 @@ Knockback resistance is clamped to the 1.0 cap.
 
 ---
 
-## 9. Vanilla bosses
+## 10. Vanilla bosses
 
 Turns the **Warden, Wither and Ender Dragon** into Apotheosis bosses.
 
@@ -346,7 +519,7 @@ lands in `armorItems` normally and both attributes and affixes **do apply**. Thr
 
 ---
 
-## 10. Fix: bosses no longer target creative/spectator players
+## 11. Fix: bosses no longer target creative/spectator players
 
 ### Symptom
 
@@ -400,7 +573,7 @@ remap" explicitly and avoids a missing-refmap warning.
 
 ---
 
-## 11. Interaction with Apotheosis boss spawners
+## 12. Interaction with Apotheosis boss spawners
 
 ### How Apotheosis spawners work
 
@@ -445,7 +618,7 @@ set, and every set member must exist on disk.
 
 ---
 
-## 12. Shared monster budget for grouped players
+## 13. Shared monster budget for grouped players
 
 ### How the vanilla cap works
 
@@ -665,7 +838,7 @@ simply only happens once.
 
 ---
 
-## 13. Spawner rune tooltips
+## 14. Spawner rune tooltips
 
 Current Apotheosis replaced "feed a pile of items to the spawner" with **runes**: each upgrade rune
 (Frontier / Ascent / Summit / Pinnacle) is really a recipe that *sets* five spawner stats to fixed values.
@@ -755,7 +928,7 @@ invalidation really is wired to events.
 
 ---
 
-## 14. Gem compendium (JEI/EMI)
+## 15. Gem compendium (JEI/EMI)
 
 Apotheosis' Patchouli entry only says gems "may be found in chest loot and rarely from mobs" - **which gem
 drops in which dimension, from which world tier it starts dropping, and what each purity's bonus actually
@@ -821,7 +994,7 @@ dimension/tier/min-purity rules are checked against all 23 gems shipped in the A
 
 ---
 
-## 15. Adventure: two protections for player-named mobs
+## 16. Adventure: two protections for player-named mobs
 
 The two switches under `[adventure]` solve one class of problem: **a mob the player personally named
 with a name tag should not be silently deleted or replaced by a global vanilla rule**. Both share the

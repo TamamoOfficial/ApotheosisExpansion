@@ -43,6 +43,22 @@ public final class ConfigConditions {
     public static final MapCodec<ArsNouveauInvadersEnabled> ARS_NOUVEAU_INVADERS =
         MapCodec.unit(ArsNouveauInvadersEnabled.INSTANCE).stable();
 
+    /** {@code {"type": "apotheosis_expansion:mekanism_tools_affixes_enabled"}} */
+    public static final MapCodec<MekanismToolsAffixesEnabled> MEKANISM_TOOLS_AFFIXES =
+        MapCodec.unit(MekanismToolsAffixesEnabled.INSTANCE).stable();
+
+    /** {@code {"type": "apotheosis_expansion:mekanism_tools_salvaging_enabled"}} */
+    public static final MapCodec<MekanismToolsSalvagingEnabled> MEKANISM_TOOLS_SALVAGING =
+        MapCodec.unit(MekanismToolsSalvagingEnabled.INSTANCE).stable();
+
+    /** {@code {"type": "apotheosis_expansion:mekanism_tools_gear_sets_enabled"}} */
+    public static final MapCodec<MekanismToolsGearSetsEnabled> MEKANISM_TOOLS_GEAR_SETS =
+        MapCodec.unit(MekanismToolsGearSetsEnabled.INSTANCE).stable();
+
+    /** {@code {"type": "apotheosis_expansion:mekanism_energy_gear_blocked"}} */
+    public static final MapCodec<MekanismEnergyGearBlocked> MEKANISM_ENERGY_GEAR_BLOCKED =
+        MapCodec.unit(MekanismEnergyGearBlocked.INSTANCE).stable();
+
     private ConfigConditions() {}
 
     /**
@@ -159,6 +175,100 @@ public final class ConfigConditions {
         @Override
         public String toString() {
             return "apotheosis_expansion:ars_nouveau_invaders_enabled";
+        }
+    }
+
+    /**
+     * Gates the Mekanism: Tools affix-loot entries ({@code data/apotheosis/affix_loot_entries/mekanism_tools/}).
+     * <p>
+     * The entries are Apotheosis dynamic-registry content, parsed once per data reload, so this condition is the only
+     * supported way to remove them - same reasoning as the invader conditions above.
+     */
+    public record MekanismToolsAffixesEnabled() implements ICondition {
+
+        public static final MekanismToolsAffixesEnabled INSTANCE = new MekanismToolsAffixesEnabled();
+
+        @Override
+        public boolean test(IContext context) {
+            return readSafely(Config::enableMekanismToolsAffixes);
+        }
+
+        @Override
+        public MapCodec<? extends ICondition> codec() {
+            return MEKANISM_TOOLS_AFFIXES;
+        }
+
+        @Override
+        public String toString() {
+            return "apotheosis_expansion:mekanism_tools_affixes_enabled";
+        }
+    }
+
+    /** Gates the Mekanism: Tools salvaging recipes ({@code data/apotheosis/recipe/salvaging/mekanism_tools/}). */
+    public record MekanismToolsSalvagingEnabled() implements ICondition {
+
+        public static final MekanismToolsSalvagingEnabled INSTANCE = new MekanismToolsSalvagingEnabled();
+
+        @Override
+        public boolean test(IContext context) {
+            return readSafely(Config::enableMekanismToolsSalvaging);
+        }
+
+        @Override
+        public MapCodec<? extends ICondition> codec() {
+            return MEKANISM_TOOLS_SALVAGING;
+        }
+
+        @Override
+        public String toString() {
+            return "apotheosis_expansion:mekanism_tools_salvaging_enabled";
+        }
+    }
+
+    /** Gates the Mekanism: Tools invader gear sets, which live under each tier's {@code gear_sets} folder. */
+    public record MekanismToolsGearSetsEnabled() implements ICondition {
+
+        public static final MekanismToolsGearSetsEnabled INSTANCE = new MekanismToolsGearSetsEnabled();
+
+        @Override
+        public boolean test(IContext context) {
+            return readSafely(Config::enableMekanismToolsGearSets);
+        }
+
+        @Override
+        public MapCodec<? extends ICondition> codec() {
+            return MEKANISM_TOOLS_GEAR_SETS;
+        }
+
+        @Override
+        public String toString() {
+            return "apotheosis_expansion:mekanism_tools_gear_sets_enabled";
+        }
+    }
+
+    /**
+     * Gates the loot-category data map that pins Mekanism's energy gear to {@code apotheosis:none}.
+     * <p>
+     * Data maps support conditions per value, so turning this off restores the default behaviour (Apotheosis treats
+     * the gear as ordinary armour/tools). The data map is synced, so the client agrees with the server.
+     */
+    public record MekanismEnergyGearBlocked() implements ICondition {
+
+        public static final MekanismEnergyGearBlocked INSTANCE = new MekanismEnergyGearBlocked();
+
+        @Override
+        public boolean test(IContext context) {
+            return readSafely(Config::blockMekanismEnergyGearAffixes);
+        }
+
+        @Override
+        public MapCodec<? extends ICondition> codec() {
+            return MEKANISM_ENERGY_GEAR_BLOCKED;
+        }
+
+        @Override
+        public String toString() {
+            return "apotheosis_expansion:mekanism_energy_gear_blocked";
         }
     }
 }

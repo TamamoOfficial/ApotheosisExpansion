@@ -152,6 +152,15 @@ public final class CraftedAffixRoller {
      * Sockets only: reuse the rarity's own socket rules, without writing affixes or a rarity colour.
      */
     private static boolean applySocketsOnly(ItemStack stack, LootRarity rarity, GenContext ctx) {
+        // An item with no loot category must not receive sockets either. The early return in #applyAffixes already
+        // covers the affix path, but this one used to fall through to the socket-range fallback below, so a
+        // 'none' item (a block, or Mekanism's energy gear pinned to apotheosis:none) would silently gain sockets
+        // whenever allow_non_equipment was on. Both paths now agree that 'none' means untouched.
+        LootCategory cat = LootCategory.forItem(stack);
+        if (cat == null || cat.isNone()) {
+            return false;
+        }
+
         // The rules write SOCKETS themselves; socketsFromRules returns the resulting absolute count.
         int granted = socketsFromRules(rarity, stack, ctx);
         if (granted <= 0) {
