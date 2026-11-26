@@ -163,7 +163,7 @@ Three constraints, all of which must hold:
 ./gradlew build
 ```
 
-Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.2.0.jar`
+Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.3.0.jar`
 
 **Dependencies**: Apotheosis / Placebo / Apothic Attributes resolve from
 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/):

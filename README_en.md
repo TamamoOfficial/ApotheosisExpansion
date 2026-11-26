@@ -27,6 +27,7 @@ Every feature can be toggled independently from the in-game config screen.
 | **Repair-combine fix** | Fixes affixes being re-rolled when combining two items; a merge can no longer mint affixes from nothing (exploit fix) |
 | **Gem drop tuning** | Scales gem drop rates and weights by multiplier |
 | **Gem compendium (JEI/EMI)** | One page per gem per purity: which dimensions/tiers it drops in and the exact bonuses; with both viewers installed only EMI registers |
+| **Max hunger affix** | Adds a `max_food` attribute and a "Gourmand" affix, so armour can roll a higher hunger ceiling; the HUD redraws as multiple drumstick rows, and Classic Bar keeps its own single bar when installed |
 | **Shared monster budget** | Players sharing a spawn platform raise the monster cap together; optionally across tiers |
 | **Spawner rune stats** | Lists what a rune actually changes in its tooltip, read from the loaded data pack |
 
@@ -112,7 +113,7 @@ exception is the invader switches, which feed data-pack conditions and need a da
 ./gradlew build
 ```
 
-Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.2.0.jar`
+Output: `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.3.0.jar`
 
 Dependencies are downloaded by Gradle from
 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/), so **a fresh clone

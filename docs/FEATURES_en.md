@@ -27,6 +27,7 @@ For a quick overview of what the mod does, see the [README](../README_en.md).
 - [14. Spawner rune tooltips](#14-spawner-rune-tooltips)
 - [15. Gem compendium (JEI/EMI)](#15-gem-compendium-jeiemi)
 - [16. Adventure: two protections for player-named mobs](#16-adventure-two-protections-for-player-named-mobs)
+- [17. The max hunger attribute (max_food)](#17-the-max-hunger-attribute-maxfood)
 
 ---
 
@@ -1062,3 +1063,120 @@ and the change applies to mobs already in the world immediately.
 production name `isConverting()Z`, that `customServerAiStep` really gates on it at threshold 300,
 that Hoglin is not on the inheritance path, the injector shape (cancellable +
 `CallbackInfoReturnable<Boolean>`), and the config-key / mixin-registration / lang-key wiring.
+
+---
+
+## 17. The max hunger attribute (`max_food`)
+
+Armour can roll a "max hunger +N" affix. This is the only new **attribute** the mod adds, and the only feature that
+has to edit vanilla `FoodData` - the reason is the next section.
+
+### 17.1 Why vanilla cannot do this
+
+1.21.1 has no hunger-related attribute: none in `Attributes`, and NeoForge's `NeoForgeMod` adds only `swim_speed`,
+`nametag_distance` and `creative_flight`. The whole hunger model is two plain fields on `FoodData`:
+
+```java
+private int foodLevel = 20;
+private float saturationLevel;
+```
+
+The ceiling of 20 is a **literal in the logic**, not a lookup:
+
+| Site | Hard-coded |
+|---|---|
+| `FoodData.add()` | `Mth.clamp(sum, 0, 20)` |
+| `FoodData.add()` | saturation `clamp(…, 0.0F, (float) foodLevel)` |
+| `FoodData.needsFood()` | `foodLevel < 20` |
+| `FoodData.tick()` | saturated regen `foodLevel >= 20`, normal regen `>= 18` |
+| `Player.aiStep()` | Peaceful refill `saturation < 20.0F` |
+
+`FoodConstants.MAX_FOOD` / `MAX_SATURATION` are **dead constants** in 21.1 - a full-text scan finds only the
+declarations, never a read (only `saturationByModifier` is used). So the constants cannot be changed either, and
+there is no datapack path (attributes are a built-in registry). Registering the attribute without patching produces
+"tooltip says +4, one carrot later you are back at 20", which is worse than nothing.
+
+### 17.2 What was added
+
+1. **`apotheosis_expansion:max_food`** (`ModAttributes`): default 20, range 1-1024, `setSyncable(true)`. Syncing is
+   required because `FoodData.add()` also runs on the client, and a client still clamping to 20 would fight the
+   server's value.
+
+2. **`EntityAttributeModificationEvent` adds it to `EntityType.PLAYER`**. This is **load-bearing, not decoration**:
+   `AttributeSupplier.createInstance` returns `null` for an unknown attribute, and
+   `LivingEntity.collectEquipmentChanges` reads
+
+   ```java
+   if (attributeinstance != null) { attributeinstance.addTransientModifier(...); }
+   ```
+
+   - a missing instance means the modifier is **silently dropped**: the affix renders, the tooltip is right, and
+   nothing happens. Reading the value directly would instead throw `IllegalArgumentException` from
+   `AttributeSupplier.getAttributeInstance`, so every read goes through `ModAttributes.maxFood(player)`, which never
+   throws and falls back to 20.
+
+3. **`FoodDataMixin`** replaces the four literals with `@ModifyConstant` (the `20` in `add`, the `20` in `needsFood`,
+   and the `20` and `18` in `tick`). The `18` is converted as "two below full" to preserve the vanilla relationship;
+   left as an absolute 18, a player with a 30 ceiling would use the fast, saturation-free regeneration branch from 20
+   upward. Each of those four methods contains its target literal exactly once, so no `ordinal` is needed - and
+   adding one would be unsafe.
+
+4. **`PlayerFoodMixin`** pushes the owner into `FoodData` at `RETURN` of `Player.<init>`. `FoodData` has no Player
+   field of its own (none of its five fields is Player-typed), and `tick(Player)` only runs on the logical server, so
+   the client's copy - the one driving the hunger bar - would never get an owner. The constructor hook covers that
+   window.
+
+5. **A re-clamp at the head of `tick`**. This is not a duplicate of the clamps in `add`, which only run while eating.
+   Removing a `+max_food` item leaves the player at "30 of a now-20 bar": `needsFood()` says they are not hungry, so
+   `canEat` refuses every item and there is no way to eat back down. It also covers a save written while the affix was
+   equipped.
+
+6. **The affix JSON `gourmand.json`**: type `apotheosis:attribute`, the four armour categories, and a
+   `min/max/step` block for common through mythic. `AttributeAffix`'s `attribute` field is a plain
+   `Holder<Attribute>` and does not care which attribute it is, so once the attribute exists this is pure data - no
+   Java needed.
+
+### 17.3 Why there is no "max saturation" attribute
+
+Vanilla bounds saturation by `Mth.clamp(…, 0.0F, (float) foodLevel)` - **the current food level itself, not 20**. So
+raising `max_food` already raises the saturation bound to the new ceiling. A saturation attribute above 20 would do
+nothing at all, and one below 20 would only ever be a nerf. In 21.1 the attribute has no implementable meaning.
+
+### 17.4 HUD: two implementations, one denominator
+
+`Gui.renderFood()` is `for (int j = 0; j < 10; j++)` - a fixed ten drumsticks, with nowhere to draw anything above
+20. The value itself does reach the client through `ClientboundSetHealthPacket` (`food` is a VarInt, `saturation` a
+float, neither truncates); only the rendering is missing.
+
+**With Classic Bar installed**: it already cancels `VanillaGuiLayers.FOOD_LEVEL` and draws its own bars, so this
+mod's HUD layer never runs. Its `Hunger` overlay had `maxHunger` / `maxSat` as the literal 20; they now read the same
+attribute, making `getBarWidth` `WIDTH * hunger / maxFood` - exactly how its own `Health` overlay divides by
+`getMaxHealth()`. **One slot, no second bar**: Classic Bar's design is one slot per stat, full at that stat's
+maximum, so the ceiling is a denominator and not an extra slot. The attribute is looked up by id from
+`BuiltInRegistries.ATTRIBUTE` (`compat/HungerCapacity`): no `compileOnly`, no reflection, and a clean fall back to 20
+when the companion mod is absent.
+
+**Without Classic Bar**: `FoodHudLayer` wraps `FOOD_LEVEL` with `wrapLayer` and stacks rows (ten icons per row, ten
+pixels per row), advancing `rightHeight` per row so the air bar and the item name keep stacking above it. **At the
+default ceiling of 20 it delegates straight to the vanilla layer**, so a player who never rolls the affix sees
+byte-for-byte vanilla rendering - which is the only reason `wrapLayer` was chosen over `replaceLayer`.
+
+Both implementations share one rule: at `ModAttributes.maxFood(player) <= 20`, draw the vanilla result. The layout
+differs because the presentation does (icon rows versus a single bar); the meaning does not.
+
+### 17.5 Still unhandled
+
+`LocalPlayer.hasEnoughFoodToStartSprinting()` tests an absolute `> 6.0F`, which misbehaves if the ceiling is ever set
+below 10. Since the ceiling only ever rises in normal play, this is visible only under extreme configuration. HUD mods
+that compute percentages against 20 (AppleSkin and friends) will also be off - that is their compatibility surface,
+not this mod's.
+
+### Verification
+
+`build/verify_max_food.js` statically guards the whole chain: each of the four literals appears **exactly once** in
+its method (otherwise `@ModifyConstant` needs an ordinal and quietly mis-targets on the next MC update), the
+saturation clamp is genuinely not a literal `20.0f` (otherwise the "no saturation patch needed" reasoning is void),
+the `tick(Player)` descriptor, `Player` having exactly one constructor with the `FoodData` initialiser inside it,
+`FoodData` genuinely having no Player field, the attribute being syncable and wired to PLAYER, both mixins being
+listed, the main class calling `register`, and the affix JSON's rarity keys all existing in the Apotheosis jar with
+integral `StepFunction` ranges.

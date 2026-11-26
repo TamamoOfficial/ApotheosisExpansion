@@ -170,5 +170,9 @@
     "apotheosis_expansion.configuration.compat.mekanism_energy_gear": "Mekanism Energy Gear",
     "apotheosis_expansion.configuration.compat.mekanism_energy_gear.tooltip": "Affix settings for Mekanism energy-powered gear.",
     "apotheosis_expansion.configuration.compat.mekanism_energy_gear.block_mekanism_energy_gear_affixes": "Exclude Energy Gear From Affixes",
-    "apotheosis_expansion.configuration.compat.mekanism_energy_gear.block_mekanism_energy_gear_affixes.tooltip": "Keeps Mekanism energy gear (MekaSuit, MekaTool, atomic disassembler, electric bow, jetpacks, free runners, scuba gear, hazmat suit, elytra, flamethrower, canteen) out of the crafted-affix roll - they run on energy and have no durability to scale from. Requires a data reload (F3+T)."
+    "apotheosis_expansion.configuration.compat.mekanism_energy_gear.block_mekanism_energy_gear_affixes.tooltip": "Keeps Mekanism energy gear (MekaSuit, MekaTool, atomic disassembler, electric bow, jetpacks, free runners, scuba gear, hazmat suit, elytra, flamethrower, canteen) out of the crafted-affix roll - they run on energy and have no durability to scale from. Requires a data reload (F3+T).",
+
+    "attribute.apotheosis_expansion.max_food": "Max Hunger",
+    "affix.apotheosis:armor/attribute/gourmand": "Gourmand",
+    "affix.apotheosis:armor/attribute/gourmand.suffix": "of Hunger"
 }

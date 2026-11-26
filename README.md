@@ -26,6 +26,7 @@
 | **合并修复修复** | 修复合并时词条被重掷的 bug；合并产物不再凭空产出词条（漏洞修复） |
 | **宝石掉落调整** | 按倍率缩放宝石掉率与权重 |
 | **宝石图鉴（JEI/EMI）** | 每种宝石每个纯度一页：掉在哪些维度/层级、增幅具体数值；两者同装时只走 EMI |
+| **饱食度上限词条** | 新增 `max_food` 属性与「饕餮」词条，护甲可随机 roll 出更高的饱食度上限；HUD 自动改画多行鸡腿，装 Classic Bar 时改用它自己那条槽 |
 | **多人共享刷怪额度** | 同处一个刷怪平台的玩家共同抬高怪物上限，可选是否跨层级计数 |
 | **刷怪笼符文数值** | 在符文 tooltip 里直接列出它改动的数值，数值取自当前数据包 |
 
@@ -110,7 +111,7 @@
 ./gradlew build
 ```
 
-产物：`build/libs/ApotheosisExpansion-1.21.1-neoforge-1.2.0.jar`
+产物：`build/libs/ApotheosisExpansion-1.21.1-neoforge-1.3.0.jar`
 
 依赖由 Gradle 自动从 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/) 下载，
 **克隆后无需手动准备任何 jar**。开发机的 Gradle 因 `native-platform.dll` 无法启动，实际用 `javac` 直接编译，

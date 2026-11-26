@@ -52,6 +52,10 @@ public class ApotheosisExpansion {
         // id, and its result is evaluated when the data packs are parsed.
         ThermalCompat.register(modBus);
 
+        // max_food: an attribute plus a FoodData patch, because 1.21.1 hard-codes the ceiling 20 in four places.
+        // Registering the attribute alone would let an Apotheosis affix name it in a tooltip and do nothing else.
+        ModAttributes.register(modBus);
+
         // Game-bus listeners: spawner interaction and the egg tooltip line.
         // Registered unconditionally; each handler checks its own config toggle so switching the feature off at
         // runtime takes effect without re-registering anything.
@@ -85,6 +89,10 @@ public class ApotheosisExpansion {
         // generic ConfigurationScreen for its own container.
         if (FMLEnvironment.dist.isClient()) {
             ClientIntegration.registerConfigScreen(container);
+
+            // The multi-row hunger bar. Wraps VanillaGuiLayers.FOOD_LEVEL and delegates to vanilla whenever the
+            // ceiling is the default 20, so a player who never rolls the affix sees no change at all.
+            com.tamamo.apotheosisexpansion.client.FoodHudIntegration.register(modBus);
 
             // Spawner rune tooltips need a recipe manager and a tooltip renderer, so they are client-only. The shared
             // half (cache invalidation on data pack sync) is registered by SpawnerRuneIntegration, whose class holds no

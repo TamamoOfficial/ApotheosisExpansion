@@ -170,5 +170,9 @@
     "apotheosis_expansion.configuration.compat.mekanism_energy_gear": "通用机械(Mekanism)能量装备",
     "apotheosis_expansion.configuration.compat.mekanism_energy_gear.tooltip": "机甲服、机甲工具等能量装备的词条设置。",
     "apotheosis_expansion.configuration.compat.mekanism_energy_gear.block_mekanism_energy_gear_affixes": "能量装备不参与词条",
-    "apotheosis_expansion.configuration.compat.mekanism_energy_gear.block_mekanism_energy_gear_affixes.tooltip": "让通用机械本体的能量装备（机甲服、机甲工具、原子分解器、电动弓、喷气背包、自由跑鞋、潜水装备、防化服、鞘翅、火焰喷射器、水壶）不参与打造词条。这些装备走能量而非耐久，挂上按耐久缩放的词条没有意义。切换后需重载数据（F3+T）才会生效。"
+    "apotheosis_expansion.configuration.compat.mekanism_energy_gear.block_mekanism_energy_gear_affixes.tooltip": "让通用机械本体的能量装备（机甲服、机甲工具、原子分解器、电动弓、喷气背包、自由跑鞋、潜水装备、防化服、鞘翅、火焰喷射器、水壶）不参与打造词条。这些装备走能量而非耐久，挂上按耐久缩放的词条没有意义。切换后需重载数据（F3+T）才会生效。",
+
+    "attribute.apotheosis_expansion.max_food": "饱食度上限",
+    "affix.apotheosis:armor/attribute/gourmand": "饕餮",
+    "affix.apotheosis:armor/attribute/gourmand.suffix": "饱食"
 }

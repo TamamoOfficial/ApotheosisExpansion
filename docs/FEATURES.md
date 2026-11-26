@@ -26,6 +26,7 @@
 - [十四、刷怪笼符文的 tooltip](#十四刷怪笼符文的-tooltip)
 - [十五、宝石图鉴（JEI/EMI）](#十五宝石图鉴jeiemi)
 - [十六、冒险：命名生物的两项保护](#十六冒险命名生物的两项保护)
+- [十七、饱食度上限属性（max_food）](#十七饱食度上限属性maxfood)
 
 ---
 
@@ -995,3 +996,112 @@ return !this.level().dimensionType().piglinSafe()   // 主世界、末地都不 
 `build/verify_named_piglin_mixin.js` 静态守住第二项的全部前提：`isConverting()Z` 的生产名、
 `customServerAiStep` 确实经此门控且阈值为 300、Hoglin 不在继承链上、注入器形态
 （cancellable + `CallbackInfoReturnable<Boolean>`）、以及配置键 / mixin 注册 / 语言键的接线。
+
+---
+
+## 十七、饱食度上限属性（`max_food`）
+
+给神化装备抽到「饱食度上限 +N」词条。这是本模组唯一新增的**属性**，也是唯一需要改动原版
+`FoodData` 的功能——原因在下一节。
+
+### 十七·一 为什么原版做不了
+
+1.21.1 没有任何与饥饿相关的属性：`Attributes` 里没有，NeoForge 的 `NeoForgeMod` 额外提供的
+也只有 `swim_speed` / `nametag_distance` / `creative_flight`。整个饥饿模型就是
+`FoodData` 的两个普通字段：
+
+```java
+private int foodLevel = 20;
+private float saturationLevel;
+```
+
+上限 20 是**逻辑里的字面量**，不是查表得到的：
+
+| 位置 | 硬编码 |
+|---|---|
+| `FoodData.add()` | `Mth.clamp(sum, 0, 20)` |
+| `FoodData.add()` | 饱和度 `clamp(…, 0.0F, (float) foodLevel)` |
+| `FoodData.needsFood()` | `foodLevel < 20` |
+| `FoodData.tick()` | 饱和再生 `foodLevel >= 20`、普通再生 `>= 18` |
+| `Player.aiStep()` | 和平模式回饱食 `saturation < 20.0F` |
+
+`FoodConstants.MAX_FOOD` / `MAX_SATURATION` 在 21.1 里是**死常量**——全量检索只命中定义处，
+没有任何读点（只有 `saturationByModifier` 被使用）。所以既不能改常量，也没有 datapack 覆盖路径
+（attribute 是 built-in registry）。只注册属性而不打补丁，效果是「词条显示 +4，吃一口胡萝卜掉回 20」，
+比不做还糟。
+
+### 十七·二 做了什么
+
+1. **注册 `apotheosis_expansion:max_food`**（`ModAttributes`）：默认值 20、范围 1–1024、
+   `setSyncable(true)`。同步是必需的，因为 `FoodData.add()` 在客户端也会跑，客户端若仍按 20 钳制
+   就会和服务器打架。
+
+2. **`EntityAttributeModificationEvent` 挂到 `EntityType.PLAYER`**。这一条是**功能性的、不是装饰**：
+   `AttributeSupplier.createInstance` 对未知属性返回 `null`，而
+   `LivingEntity.collectEquipmentChanges` 里是
+
+   ```java
+   if (attributeinstance != null) { attributeinstance.addTransientModifier(...); }
+   ```
+
+   ——没有实例就**静默丢弃**，装备上词条、tooltip 正常显示、然后什么都不发生。反过来直接读又会
+   在 `AttributeSupplier.getAttributeInstance` 抛 `IllegalArgumentException`，所以所有读取都走
+   `ModAttributes.maxFood(player)`，永不抛异常，读不到时回落 20。
+
+3. **`FoodDataMixin`** 用 `@ModifyConstant` 逐个替换四处字面量（`add` 的 20、`needsFood` 的 20、
+   `tick` 的 20 与 18）。`tick` 的 18 按「满值减 2」换算，保持原版相对关系；否则上限提到 30 之后
+   玩家会从 20 起就走「有饱和度、免消耗」的快车道。四个方法各自只含一个目标字面量，
+   所以不需要（也不该加）`ordinal`。
+
+4. **`PlayerFoodMixin`** 在 `Player` 构造器 `RETURN` 处把 owner 推进 `FoodData`。
+   `FoodData` 自己没有 Player 字段（五个字段里没有一个是 Player 类型），而 `tick(Player)` 只在
+   服务端调用，客户端那份 `FoodData` 永远等不到 owner——构造器钩子补的正是这个窗口。
+
+5. **`tick` 头部再钳一次**。这不是和 `add` 里的钳制重复：`add` 只在进食时跑。摘掉 `+max_food`
+   装备后玩家会卡在「30 / 上限已回 20」的状态，`needsFood()` 判定「不饿」→ `canEat` 拒绝一切食物
+   → 没有任何办法吃回去。同时这也覆盖了「在带上限属性时存的档」。
+
+6. **词条 JSON `gourmand.json`**：`apotheosis:attribute` 类型、四个护甲分类、
+   common→mythic 五档 `min/max/step`。`AttributeAffix` 的 `attribute` 字段类型就是 `Holder<Attribute>`，
+   不认具体属性，所以属性注册好之后纯数据即可，不需要写任何 Java。
+
+### 十七·三 为什么没有「饱和度上限」属性
+
+原版饱和度的上界是 `Mth.clamp(…, 0.0F, (float) foodLevel)`——**是当前饱食度本身，不是 20**。
+所以提高 `max_food` 之后饱和度上界自动跟着抬到新上限。再开一个饱和度属性：取值高于 20 时
+什么都不做，低于 20 时纯粹是削弱。这个属性在 21.1 里没有可实现的语义。
+
+### 十七·四 HUD：两套实现，同一个分母
+
+`Gui.renderFood()` 是 `for (int j = 0; j < 10; j++)`——固定画 10 个鸡腿，超过 20 的部分没有地方画。
+数值本身通过 `ClientboundSetHealthPacket` 能到客户端（`food` 是 VarInt、`saturation` 是 float，都不截断），
+缺的只是渲染。
+
+**装了 Classic Bar 时**：它本来就取消了 `VanillaGuiLayers.FOOD_LEVEL` 并自己画条，所以本模组的 HUD 层
+不会运行。它的 `Hunger` 里 `maxHunger` / `maxSat` 原本是字面量 20，改成读同一个属性即可——
+`getBarWidth` 变成 `WIDTH * hunger / maxFood`，和它自己的 `Health` 用 `getMaxHealth()` 做除数完全同构。
+**一条槽，不新增副条**：Classic Bar 的设计就是「每个状态占一条槽、槽在该状态的最大值处满格」，
+上限是分母而不是第二条槽。属性按 id 从 `BuiltInRegistries.ATTRIBUTE` 里查（`compat/HungerCapacity`），
+不 `compileOnly`、不反射，companion mod 缺席时回落到 20。
+
+**没装 Classic Bar 时**：`FoodHudLayer` 用 `wrapLayer` 包住 `FOOD_LEVEL`，多行堆叠（每行 10 个、
+每行 10 像素），`rightHeight` 按行数递增，氧气条和物品名继续往上叠。**上限仍是 20 时直接委派给原版层**，
+所以从未抽到该词条的玩家看到的渲染没有任何变化——这是选择 `wrapLayer` 而不是 `replaceLayer` 的唯一理由。
+
+两套实现共用同一个判断：`ModAttributes.maxFood(player) <= 20` 时走原版路径。布局差异由各自的
+呈现方式决定（图标行 vs 单条），语义上没有分歧。
+
+### 十七·五 仍未处理
+
+`LocalPlayer.hasEnoughFoodToStartSprinting()` 用绝对值 `> 6.0F` 判断冲刺，上限低于 10 时会失真。
+正常情况下上限只增不减，所以只在极端配置下可见。AppleSkin 这类按 20 算百分比的 HUD mod 也会算错比例，
+属于外部 mod 的兼容范围。
+
+### 校验
+
+`build/verify_max_food.js` 静态守住整条链路：四个字面量在各自方法里**恰好出现一次**（否则
+`@ModifyConstant` 需要 ordinal，且会在下次 MC 更新时静默错位）、饱和度钳制确实不是字面量 20.0f
+（否则「不必打饱和度补丁」的推理就失效）、`tick(Player)` 描述符、`Player` 只有一个构造器且
+`FoodData` 初始化在构造器内、`FoodData` 确实没有 Player 字段、属性可同步且挂到了 PLAYER、
+两个 mixin 已登记、主类确实调用了 `register`，以及词条 JSON 的稀有度键全部在 Apotheosis 里存在、
+`StepFunction` 区间是整数步。

@@ -160,7 +160,7 @@
 ./gradlew build
 ```
 
-产物在 `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.2.0.jar`。
+产物在 `build/libs/ApotheosisExpansion-1.21.1-neoforge-1.3.0.jar`。
 
 **依赖说明**：Apotheosis / Placebo / Apothic Attributes 从
 [Shadow's Maven](https://maven.shadowsoffire.dev/releases/dev/shadowsoffire/) 解析：
